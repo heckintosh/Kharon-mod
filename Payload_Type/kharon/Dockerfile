@@ -2,11 +2,9 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install essential dependencies (including lsb-release)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
-    clang \
     build-essential \
     apt-utils \
     make \
@@ -17,9 +15,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     wget \
     lsb-release \
+    software-properties-common \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 16
+RUN wget https://apt.llvm.org/llvm.sh \
+    && chmod +x llvm.sh \
+    && ./llvm.sh 16 \
+    && rm llvm.sh
 
 RUN python3 -m pip install mythic-container
 
