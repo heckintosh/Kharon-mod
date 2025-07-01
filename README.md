@@ -51,4 +51,11 @@ Some command to kerberos interaction like klist, ptt, describe, triage, s4u and 
 - Slack cookie dump
 - ipconfig, whoami, env, arp, dns cache and uptime
 
+
+# Author links
+- [Linkedin](https://www.linkedin.com/in/josu%C3%A9-m-6311882a4/)
+- [Blog](https://oblivion-malware.xyz/)
+- [X](https://x.com/awwhwhasz)
+- [Github](https://github.com/entropy-z)
+
 Check the [References](REFERENCES.md)!
