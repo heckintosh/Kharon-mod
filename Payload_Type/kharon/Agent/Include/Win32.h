@@ -13,6 +13,17 @@ typedef UINT_PTR    UPTR;
 #define KhRetError( x )  KhSetError( x ); return KhGetError
 #define KhRetSuccess     KhSetError( ERROR_SUCCESS ); return KhGetError
 
+typedef struct _PROCESSOR_NUMBER {
+    WORD   Group;
+    BYTE  Number;
+    BYTE  Reserved;
+} PROCESSOR_NUMBER, *PPROCESSOR_NUMBER;
+
+typedef struct _CFG_CALL_TARGET_INFO {
+    ULONG_PTR Offset;
+    ULONG_PTR Flags;
+} CFG_CALL_TARGET_INFO, *PCFG_CALL_TARGET_INFO;
+
 typedef struct {
     ULONG_PTR Attribute;
     SIZE_T Size;
