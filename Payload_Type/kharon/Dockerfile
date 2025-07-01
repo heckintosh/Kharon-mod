@@ -11,6 +11,6 @@ WORKDIR /Mythic/
 RUN python3 -m venv /venv
 RUN /venv/bin/python -m pip install mythic-container collections struct logging os binascii base64 json
 
-WORKDIR /Mythic
+WORKDIR /Mythic/
 
-CMD ["bash", "-c", "/venv/bin/python3 main.py"]
+CMD ["python3", "main.py"]
