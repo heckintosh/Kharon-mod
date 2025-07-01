@@ -43,21 +43,21 @@ class KharonAgent(PayloadType):
         BuildParameter(
             name="Format",
             parameter_type=BuildParameterType.ChooseOne,
-            choices=["exe", "dll", "svc", "bin"],
+            choices=["exe", "bin"],
             default_value="bin",
             description="0.2 [GLOBAL] Output format (executable, DLL, service, or shellcode)"
         ),
         BuildParameter(
             name="Architecture",
             parameter_type=BuildParameterType.ChooseOne,
-            choices=["x64", "x86"],
+            choices=["x64"],
             default_value="x64",
             description="0.3 [GLOBAL] Target architecture"
         ),
         BuildParameter(
             name="Injection Shellcode",
             parameter_type=BuildParameterType.ChooseOne,
-            choices=["Classic", "Stomp"],
+            choices=["Classic"],
             default_value="Classic",
             description="1.6 [AGENT] Shellcode injection technique"
         ),
