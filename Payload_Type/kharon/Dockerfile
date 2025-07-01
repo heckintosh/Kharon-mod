@@ -1,4 +1,5 @@
-#FROM itsafeaturemythic/mythic_python_dotnet:latest
+FROM itsafeaturemythic/mythic_python_base:latest
+
 RUN apt-get update && apt-get install python3 python3-pip \ 
     python3.11-venv -y clang* build-essential apt-utils   \
     cmake libfontconfig1 libglu1-mesa-dev libgtest-dev    \
@@ -10,6 +11,6 @@ WORKDIR /Mythic/
 RUN python3 -m venv /venv
 RUN /venv/bin/python -m pip install mythic-container collections struct logging os binascii base64 json
 
-COPY [".", "."]
+WORKDIR /Mythic
 
 CMD ["bash", "-c", "/venv/bin/python3 main.py"]
