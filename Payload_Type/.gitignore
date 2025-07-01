@@ -1,0 +1,6 @@
+Build
+*.bin
+.venv
+.vscode
+NOTES.md
+ldr*
