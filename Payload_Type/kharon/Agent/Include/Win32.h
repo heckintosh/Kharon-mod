@@ -13,11 +13,11 @@ typedef UINT_PTR    UPTR;
 #define KhRetError( x )  KhSetError( x ); return KhGetError
 #define KhRetSuccess     KhSetError( ERROR_SUCCESS ); return KhGetError
 
-typedef struct _PROCESSOR_NUMBER {
-    WORD   Group;
-    BYTE  Number;
-    BYTE  Reserved;
-} PROCESSOR_NUMBER, *PPROCESSOR_NUMBER;
+// typedef struct _PROCESSOR_NUMBER {
+//     WORD   Group;
+//     BYTE  Number;
+//     BYTE  Reserved;
+// } PROCESSOR_NUMBER, *PPROCESSOR_NUMBER;
 
 // typedef struct _CFG_CALL_TARGET_INFO {
 //     ULONG_PTR Offset;
@@ -2619,52 +2619,6 @@ typedef enum _WORKERFACTORYINFOCLASS
     WorkerFactoryThreadCpuSets, // since REDSTONE5
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
-
-typedef enum _PROC_THREAD_ATTRIBUTE_NUM {
-    ProcThreadAttributeParentProcess                = 0,
-    ProcThreadAttributeHandleList                   = 2,
-#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
-    ProcThreadAttributeGroupAffinity                = 3,
-    ProcThreadAttributePreferredNode                = 4,
-    ProcThreadAttributeIdealProcessor               = 5,
-    ProcThreadAttributeUmsThread                    = 6,
-    ProcThreadAttributeMitigationPolicy             = 7,
-#endif
-#if (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
-    ProcThreadAttributeSecurityCapabilities         = 9,
-#endif
-    ProcThreadAttributeProtectionLevel              = 11,
-#if (_WIN32_WINNT >= _WIN32_WINNT_WINBLUE)
-#endif
-#if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
-    ProcThreadAttributeJobList                      = 13,
-    ProcThreadAttributeChildProcessPolicy           = 14,
-    ProcThreadAttributeAllApplicationPackagesPolicy = 15,
-    ProcThreadAttributeWin32kFilter                 = 16,
-#endif
-#if (NTDDI_VERSION >= NTDDI_WIN10_RS1)
-    ProcThreadAttributeSafeOpenPromptOriginClaim    = 17,
-#endif
-#if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
-    ProcThreadAttributeDesktopAppPolicy = 18,
-#endif
-#if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
-    ProcThreadAttributePseudoConsole                = 22,
-#endif
-#if (NTDDI_VERSION >= NTDDI_WIN10_19H1)
-#endif
-#if (NTDDI_VERSION >= NTDDI_WIN10_MN)
-    ProcThreadAttributeMitigationAuditPolicy        = 24,
-    ProcThreadAttributeMachineType                  = 25,
-    ProcThreadAttributeComponentFilter              = 26,
-#endif
-#if (NTDDI_VERSION >= NTDDI_WIN10_FE)
-    ProcThreadAttributeEnableOptionalXStateFeatures = 27,
-#endif
-#if (NTDDI_VERSION >= NTDDI_WIN10_NI)
-    ProcThreadAttributeTrustedApp                   = 29,
-#endif
-} PROC_THREAD_ATTRIBUTE_NUM;
 
 #define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON         (0x00000001ui64 << 44)
 
