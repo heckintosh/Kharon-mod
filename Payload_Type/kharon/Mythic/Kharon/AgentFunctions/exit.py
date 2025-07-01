@@ -27,6 +27,7 @@ class ExitCommand(CommandBase):
     description = "Terminate agent using either thread or process method"
     version = 1
     author = "@ Oblivion"
+    supported_ui_features = ["callback_table:exit"]
     argument_class = ExitArguments
     attackmapping = []
 
