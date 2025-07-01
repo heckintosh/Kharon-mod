@@ -2686,11 +2686,10 @@ typedef enum _PROC_THREAD_ATTRIBUTE_NUM {
 #define ProcThreadAttributeValue(Number, Thread, Input, Append) ((Number) | ((Thread) ? 0x00010000 : 0) | ((Input) ? 0x00020000 : 0) | ((Append) ? 0x00040000 : 0))
 #endif
 
-#define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY \
-    ProcThreadAttributeValue (ProcThreadAttributeMitigationPolicy, FALSE, TRUE, FALSE)
-
+#ifndef PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
 #define PROC_THREAD_ATTRIBUTE_PARENT_PROCESS \
     ProcThreadAttributeValue (ProcThreadAttributeParentProcess, FALSE, TRUE, FALSE)
+#endif
 
 /* ========== [ Expands ] ========== */
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
