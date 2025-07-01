@@ -6,7 +6,7 @@ CCX64  := clang++ -target x86_64-w64-mingw32
 CCX86  := clang++ -target i686-w64-mingw32
 ASMCC  := nasm
 
-CFLAGS := -Os -nostdlib -fno-asynchronous-unwind-tables -std=c++20
+CFLAGS := -Os -nostdlib -fno-asynchronous-unwind-tables -std=c++2a
 CFLAGS += -fms-extensions -Wno-error=gnu-anonymous-struct -Wno-error=nested-anon-types
 CFLAGS += -fno-ident -fpack-struct=8 -falign-functions=1 -w -mno-sse -s
 CFLAGS += -ffunction-sections -falign-jumps=1 -falign-labels=1 -mrdrnd
