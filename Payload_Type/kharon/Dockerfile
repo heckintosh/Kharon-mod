@@ -4,6 +4,4 @@ RUN apt-get update && apt-get install -y python3 python3-pip clang build-essenti
 
 RUN python3 -m pip install mythic-container 
 
-WORKDIR /Mythic/
-
-CMD ["python3", "main.py"]
+CMD ["python3", "Mythic/main.py"]
