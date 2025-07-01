@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     build-essential \
     apt-utils \
+    clang \
     make \
     python3-dev \
     libboost-all-dev \
