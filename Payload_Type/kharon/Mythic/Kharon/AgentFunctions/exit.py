@@ -36,7 +36,7 @@ class ExitCommand(CommandBase):
             TaskID=taskData.Task.ID,
             Success=True,
         )
-        method = taskData.args.get_arg("method", "process")
+        method = taskData.args.get_arg("method")
         method_id = 0
         if method == "process":
             method_id = "21"
