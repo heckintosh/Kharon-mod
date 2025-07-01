@@ -16,7 +16,7 @@ RUN python3 -m pip install mythic-container
 
 RUN mkdir -p /Mythic
 
-COPY . /Mythic/
+COPY ./Mythic /Mythic/
 
 WORKDIR /Mythic
 
