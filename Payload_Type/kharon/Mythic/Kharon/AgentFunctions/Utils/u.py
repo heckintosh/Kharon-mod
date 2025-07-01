@@ -307,6 +307,12 @@ class Parser:
         self.buffer = b''
         return remaining
     
+async def DeleteStorage( UUID ) -> bool:
+    resp = await SendMythicRPCAgentStorageRemove( MythicRPCAgentStorageRemoveMessage(
+        UUID
+    ) )
+
+    return resp.Success
 
 async def StorageExtract( UUID ):
     """Extract and organize all agent storage data efficiently"""

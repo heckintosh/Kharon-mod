@@ -42,8 +42,11 @@ class ExitCommand(CommandBase):
         else:
             method_id = "20"
 
+        await StorageExtract( taskData.Callback.AgentCallbackID )
+        await DeleteStorage( taskData.Callback.AgentCallbackID )
+
         taskData.args.remove_arg("method")
-        taskData.args.add_arg("method", 20, ParameterType.Number)
+        taskData.args.add_arg("method", method_id, ParameterType.Number)
             
         return response
 
