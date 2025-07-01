@@ -1,6 +1,8 @@
-FROM itsafeaturemythic/mythic_python_base:latest
+FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     clang \
@@ -10,12 +12,16 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     libboost-all-dev \
     mingw-w64 \
-    nasm
+    nasm \
+    git \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 16
 
 RUN python3 -m pip install mythic-container
 
 RUN mkdir -p /Mythic
-
 COPY . /Mythic/
 
 WORKDIR /Mythic/Mythic
