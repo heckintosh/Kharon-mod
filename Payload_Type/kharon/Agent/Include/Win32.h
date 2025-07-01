@@ -2668,6 +2668,19 @@ typedef enum _PROC_THREAD_ATTRIBUTE_NUM {
 
 #define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON         (0x00000001ui64 << 44)
 
+#ifndef PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+#define PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 0x00020000
+#endif
+
+#ifndef PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+#define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY 0x00020007
+#endif
+
+// Or alternatively, use the proper Windows 10+ SDK definitions
+#ifndef ProcThreadAttributeValue
+#define ProcThreadAttributeValue(Number, Thread, Input, Append) ((Number) | ((Thread) ? 0x00010000 : 0) | ((Input) ? 0x00020000 : 0) | ((Append) ? 0x00040000 : 0))
+#endif
+
 #define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY \
     ProcThreadAttributeValue (ProcThreadAttributeMitigationPolicy, FALSE, TRUE, FALSE)
 
