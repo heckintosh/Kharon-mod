@@ -11,7 +11,7 @@ CFLAGS += -fms-extensions -Wno-error=gnu-anonymous-struct -Wno-error=nested-anon
 CFLAGS += -fno-ident -fpack-struct=8 -falign-functions=1 -w -mno-sse -s
 CFLAGS += -ffunction-sections -falign-jumps=1 -falign-labels=1 -mrdrnd
 CFLAGS += -Wl,-s,--no-seh,--enable-stdcall-fixup -masm=intel -fno-exceptions
-CFLAGS += -fms-extensions -fPIC -IInclude -Wl,-TLinker.ld -Wno-error=anonymous-struct
+CFLAGS += -fms-extensions -IInclude -Wl,-TLinker.ld -Wno-error=anonymous-struct
 
 SRC    := $(wildcard Source/*.cc)
 MISC   := $(wildcard Source/Misc/*.cc)
