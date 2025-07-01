@@ -13,16 +13,16 @@ typedef UINT_PTR    UPTR;
 #define KhRetError( x )  KhSetError( x ); return KhGetError
 #define KhRetSuccess     KhSetError( ERROR_SUCCESS ); return KhGetError
 
-typedef struct _PROCESSOR_NUMBER {
-    WORD   Group;
-    BYTE  Number;
-    BYTE  Reserved;
-} PROCESSOR_NUMBER, *PPROCESSOR_NUMBER;
+// typedef struct _PROCESSOR_NUMBER {
+//     WORD   Group;
+//     BYTE  Number;
+//     BYTE  Reserved;
+// } PROCESSOR_NUMBER, *PPROCESSOR_NUMBER;
 
-typedef struct _CFG_CALL_TARGET_INFO {
-    ULONG_PTR Offset;
-    ULONG_PTR Flags;
-} CFG_CALL_TARGET_INFO, *PCFG_CALL_TARGET_INFO;
+// typedef struct _CFG_CALL_TARGET_INFO {
+//     ULONG_PTR Offset;
+//     ULONG_PTR Flags;
+// } CFG_CALL_TARGET_INFO, *PCFG_CALL_TARGET_INFO;
 
 typedef struct {
     ULONG_PTR Attribute;
@@ -2620,11 +2620,11 @@ typedef enum _WORKERFACTORYINFOCLASS
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 
-#define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON         (0x00000001ui64 << 44)
+// #define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON         (0x00000001ui64 << 44)
 
-#define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY \
-    ProcThreadAttributeValue (ProcThreadAttributeMitigationPolicy, FALSE, TRUE, FALSE)
-#endif
+// #define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY \
+//     ProcThreadAttributeValue (ProcThreadAttributeMitigationPolicy, FALSE, TRUE, FALSE)
+// #endif
 
 /* ========== [ Expands ] ========== */
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
@@ -2637,11 +2637,11 @@ typedef enum _WORKERFACTORYINFOCLASS
 #define NT_SUCCESS( Status )  ( ( (NTSTATUS) (Status) ) >= 0 )
 
 /* ========== [ Functions ] ========== */
-WINAPI void DeleteProcThreadAttributeList( LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList );
-WINAPI BOOL UpdateProcThreadAttribute( LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList, DWORD dwFlags, DWORD_PTR Attribute, PVOID lpValue, SIZE_T cbSize, PVOID lpPreviousValue, PSIZE_T lpReturnSize );
-WINAPI BOOL InitializeProcThreadAttributeList( LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList, DWORD dwAttributeCount, DWORD dwFlags, PSIZE_T lpSize );
-WINAPI   HANDLE CreateFileTransactedA( LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile, HANDLE hTransaction, PUSHORT pusMiniVersion, PVOID lpExtendedParameter );
-WINAPI   HANDLE CreateTransaction( LPSECURITY_ATTRIBUTES lpTransactionAttributes, LPGUID UOW, DWORD CreateOptions, DWORD IsolationLevel, DWORD IsolationFlags, DWORD Timeout, LPWSTR Description );
+// WINAPI void DeleteProcThreadAttributeList( LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList );
+// WINAPI BOOL UpdateProcThreadAttribute( LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList, DWORD dwFlags, DWORD_PTR Attribute, PVOID lpValue, SIZE_T cbSize, PVOID lpPreviousValue, PSIZE_T lpReturnSize );
+// WINAPI BOOL InitializeProcThreadAttributeList( LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList, DWORD dwAttributeCount, DWORD dwFlags, PSIZE_T lpSize );
+// WINAPI   HANDLE CreateFileTransactedA( LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile, HANDLE hTransaction, PUSHORT pusMiniVersion, PVOID lpExtendedParameter );
+// WINAPI   HANDLE CreateTransaction( LPSECURITY_ATTRIBUTES lpTransactionAttributes, LPGUID UOW, DWORD CreateOptions, DWORD IsolationLevel, DWORD IsolationFlags, DWORD Timeout, LPWSTR Description );
 NTSYSAPI NTSTATUS NTAPI NtSetInformationWorkerFactory(_In_ HANDLE WorkerFactoryHandle,_In_ WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,_In_reads_bytes_(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,_In_ ULONG WorkerFactoryInformationLength);
 NTSYSAPI NTSTATUS NTAPI NtCreateWorkerFactory( _Out_ PHANDLE WorkerFactoryHandleReturn,_In_ ACCESS_MASK DesiredAccess,_In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,_In_ HANDLE CompletionPortHandle,_In_ HANDLE WorkerProcessHandle,_In_ PVOID StartRoutine,_In_opt_ PVOID StartParameter,_In_opt_ ULONG MaxThreadCount,_In_opt_ SIZE_T StackReserve,_In_opt_ SIZE_T StackCommit);
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationWorkerFactory( _In_ HANDLE WorkerFactoryHandle,_In_ WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,_Out_writes_bytes_(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,_In_ ULONG WorkerFactoryInformationLength,_Out_opt_ PULONG ReturnLength);
