@@ -32,7 +32,7 @@ x64: $(OBJ64)
 
 x86: $(OBJ86)
 	@ echo "compiling x86 project"
-	@ $(CCX86) $(BUILD_PATH)Bin//obj/*.x86.obj -o $(BUILD_PATH)/$(NAME).x86.exe $(CFLAGS)
+	@ $(CCX86) $(BUILD_PATH)Bin//obj/*.x86.obj -o $(BUILD_PATH)/Bin/$(NAME).x86.exe $(CFLAGS)
 
 %.x64.obj: %.cc
 	@ echo "-> compiling $< to $(notdir $@)"
