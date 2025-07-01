@@ -1,15 +1,14 @@
 {
   "os": ["Windows"],
-  "languages": [".NET Framework"] ,
+  "languages": ["C/C++"] ,
   "features": {
-    "mythic": ["artifacts", "browser scripts", "credentials","docker", "dynamic loading", "file chunking", "file browser",
-      "keylogging", "p2p", "process browser", "push c2", "rpfwd","screenshots", "socks"],
+    "mythic": ["browser scripts", "credentials","docker", "file chunking", "file browser", "p2p", "process browser", "push c2","screenshots"],
     "custom": ["bofs","key exchange", "killdate", "inline assembly", "powerpick",
     "donut", "shellcode injection"]
   },
-  "payload_output": ["exe", "shellcode", "service"],
+  "payload_output": ["exe", "shellcode", "service", "dll"],
   "architectures": ["x86_64"],
   "c2": ["http", "smb"],
   "mythic_version": "3.3.1-rc75",
-  "agent_version": "0.1",
+  "agent_version": "0.1"
 }
