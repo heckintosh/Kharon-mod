@@ -1446,7 +1446,7 @@ public:
     ) -> HMODULE;
 
     static auto CLRCreateInstance(
-        const IID* clsid, const IID* riid, LPVOID *ppInterface
+        REFCLSID clsid, REFIID riid, LPVOID *ppInterface
     ) -> HRESULT;
 
     static auto CoInitialize(

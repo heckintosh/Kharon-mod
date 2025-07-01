@@ -318,22 +318,47 @@ auto DECLFN Coff::WriteApc(
 }
 
 auto DECLFN Coff::CLRCreateInstance(
-    const IID* clsid, const IID* riid, LPVOID *ppInterface
+    REFCLSID clsid, REFIID riid, LPVOID* ppInterface
 ) -> HRESULT {
     G_KHARON
 
+    if (!ppInterface) {
+        return E_POINTER;
+    }
+
     if ( Self->Spf->Enabled ) {
-        return Self->Spf->Call(
-            (UPTR)Self->Mscoree.CLRCreateInstance, 
-            reinterpret_cast<UPTR>(clsid),  
-            reinterpret_cast<UPTR>(riid),
-            (UPTR)ppInterface
-        );
+        struct GUID_PACK {
+            UPTR part1;
+            UPTR part2;
+        };
+        
+        GUID_PACK clsid_pack = {
+            *reinterpret_cast<const UPTR*>(&clsid.Data1),
+            *reinterpret_cast<const UPTR*>(&clsid.Data2)
+        };
+        
+        GUID_PACK riid_pack = {
+            *reinterpret_cast<const UPTR*>(&riid.Data1),
+            *reinterpret_cast<const UPTR*>(&riid.Data2)
+        };
+
+        return static_cast<HRESULT>(Self->Spf->Call(
+            reinterpret_cast<UPTR>(Self->Mscoree.CLRCreateInstance),
+            clsid_pack.part1,
+            clsid_pack.part2,
+            reinterpret_cast<UPTR>(&clsid.Data3),
+            reinterpret_cast<UPTR>(clsid.Data4),
+            riid_pack.part1,
+            riid_pack.part2,
+            reinterpret_cast<UPTR>(&riid.Data3),
+            reinterpret_cast<UPTR>(riid.Data4),
+            reinterpret_cast<UPTR>(ppInterface)
+        ));
     } else {
-        Self->Mscoree.CLRCreateInstance( 
-            *clsid,  
-            *riid,
-            ppInterface 
+        return Self->Mscoree.CLRCreateInstance(
+            clsid,
+            riid,
+            ppInterface
         );
     }
 }

@@ -16,7 +16,7 @@ C2 Agent for Mythic with advanced evasion capabilities, supporting dotnet/powers
 - Call stack spoofing.
 
 ## Execution in memory 
-Supports injection of dotnet assembly, PE file, shellcode, and Beacon Object File (BOF). All execution is inline with exception of the shellcode for a while.
+Supports injection of dotnet assembly, shellcode, and Beacon Object File (BOF). All execution is inline with exception of the shellcode for a while.
 
 ### General  
 Allows customization of injection techniques, including:  
