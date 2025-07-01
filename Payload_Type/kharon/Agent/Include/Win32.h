@@ -2691,6 +2691,10 @@ typedef enum _PROC_THREAD_ATTRIBUTE_NUM {
     ProcThreadAttributeValue (ProcThreadAttributeParentProcess, FALSE, TRUE, FALSE)
 #endif
 
+#ifndef SECURITY_FLAG_IGNORE_WEAK_SIGNATURE
+#define SECURITY_FLAG_IGNORE_WEAK_SIGNATURE     0x00010000
+#endif
+
 /* ========== [ Expands ] ========== */
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
 
