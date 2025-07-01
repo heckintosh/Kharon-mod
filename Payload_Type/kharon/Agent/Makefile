@@ -55,6 +55,9 @@ all: release debug
 release: x64 x86
 debug: 	 x64-debug x86-debug
 
+x64-release: X64
+x86-release: X86
+
 x64-debug: CFLAGS += -D DEBUG
 x64-debug: x64
 

@@ -2670,7 +2670,9 @@ typedef enum _PROC_THREAD_ATTRIBUTE_NUM {
 
 #define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY \
     ProcThreadAttributeValue (ProcThreadAttributeMitigationPolicy, FALSE, TRUE, FALSE)
-#endif
+
+#define PROC_THREAD_ATTRIBUTE_PARENT_PROCESS \
+    ProcThreadAttributeValue (ProcThreadAttributeParentProcess, FALSE, TRUE, FALSE)
 
 /* ========== [ Expands ] ========== */
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
