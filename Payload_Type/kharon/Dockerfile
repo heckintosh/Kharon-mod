@@ -6,4 +6,4 @@ RUN python3 -m pip install mythic-container
 
 COPY [".", "."]
 
-CMD ["python3", "./Mythic/main.py"]
+CMD ["python3", "Mythic/main.py"]
