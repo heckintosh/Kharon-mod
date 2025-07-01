@@ -57,7 +57,7 @@ class TokenUUIDCommand(CommandBase):
             
             token_uuid = psr.Bytes()
 
-            token_message =  f"{token_uuid[1:].decode("utf-8", "ignore")}"
+            token_message =  f"{token_uuid[1:].decode('utf-8', 'ignore')}"
 
             await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
                 TaskID=task.Task.ID,
