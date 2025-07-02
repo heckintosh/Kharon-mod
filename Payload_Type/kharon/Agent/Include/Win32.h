@@ -2620,34 +2620,9 @@ typedef enum _WORKERFACTORYINFOCLASS
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 
-#define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON         (0x00000001ui64 << 44)
-
-#ifndef PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY
-#define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY \
-    ProcThreadAttributeValue(7, FALSE, TRUE, FALSE)
-#endif
-
-#ifndef PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
-#define PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 0x00020000
-#endif
-
-#ifndef PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
-#define PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY 0x00020007
-#endif
-
-// Or alternatively, use the proper Windows 10+ SDK definitions
-#ifndef ProcThreadAttributeValue
-#define ProcThreadAttributeValue(Number, Thread, Input, Append) ((Number) | ((Thread) ? 0x00010000 : 0) | ((Input) ? 0x00020000 : 0) | ((Append) ? 0x00040000 : 0))
-#endif
-
-#ifndef PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
-#define PROC_THREAD_ATTRIBUTE_PARENT_PROCESS \
-    ProcThreadAttributeValue (ProcThreadAttributeParentProcess, FALSE, TRUE, FALSE)
-#endif
-
-#ifndef SECURITY_FLAG_IGNORE_WEAK_SIGNATURE
-#define SECURITY_FLAG_IGNORE_WEAK_SIGNATURE     0x00010000
-#endif
+#define FILE_DISPOSITION_DELETE 0x00000001
+#define FILE_DISPOSITION_POSIX_SEMANTICS 0x00000002
+#define FileDispositionInfoEx 21
 
 /* ========== [ Expands ] ========== */
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx

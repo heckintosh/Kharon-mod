@@ -42,8 +42,6 @@ auto DECLFN Process::Create(
     _In_  ULONG                PsFlags,
     _Out_ PPROCESS_INFORMATION PsInfo
 ) -> BOOL {
-    ProcThreadAttrList ProcAttr;
-
     BOOL   Success      = FALSE;
     ULONG  TmpValue     = 0;
     HANDLE PipeWrite    = nullptr;

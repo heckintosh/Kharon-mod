@@ -19,7 +19,7 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
     ULONG    TaskQtt  = 0;
 
     Package = Self->Pkg->NewTask();
-    if (!Package) {
+    if ( ! Package ) {
         KhDbg("ERROR: Failed to create new task package");
         goto CLEANUP;
     }
@@ -39,7 +39,7 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
     KhDbg("Received response %p [%d bytes]", DataPsr, PsrLen);
 
     Self->Psr->NewTask( Parser, DataPsr, PsrLen );
-    if ( !Parser->Original ) { goto CLEANUP; }
+    if ( ! Parser->Original ) { goto CLEANUP; }
 
     KhDbg("Parsed data %p [%d bytes]", Parser->Buffer, Parser->Length);
 

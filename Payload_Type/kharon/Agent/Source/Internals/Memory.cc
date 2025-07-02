@@ -48,8 +48,6 @@ auto DECLFN Memory::Alloc(
 ) -> PVOID {
     UINT32 Flags = Self->KH_SYSCALL_FLAGS;
 
-    KhDbg("alloc flags: %X", Flags);
-
     NTSTATUS Status      = STATUS_UNSUCCESSFUL;
     PVOID    BaseAddress = Base;
     SIZE_T   RegionSize  = Size;

@@ -31,7 +31,6 @@ auto DECLFN Heap::Alloc(
         sizeof( HEAP_NODE )
     );
     if ( !NewNode ) {
-        Self->Ntdll.RtlFreeHeap( PTR( Self->Session.HeapHandle ), 0, Block );
         return NULL;
     }
 

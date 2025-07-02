@@ -983,6 +983,9 @@ enum _LOKY_CRYPT {
 };
 typedef _LOKY_CRYPT LOKY_CRYPT;
 
+#define BLOCK_SIZE 8
+#define NUM_ROUNDS 16
+
 class Crypt {
 private:
     Root::Kharon* Self;    
@@ -992,29 +995,34 @@ public:
     UCHAR LokKey[16] = KH_CRYPT_KEY;
     UCHAR XorKey[16] = KH_CRYPT_KEY;
 
+    auto CalcPadding(
+        ULONG Length
+    ) -> ULONG;
+
     auto Cycle( 
         BYTE* Block, 
         LOKY_CRYPT Loky 
     ) -> VOID;
 
-    auto AddPadding( 
-        UCHAR** Block, 
-        ULONG*  Length 
+    auto AddPadding(
+        PBYTE Block,
+        ULONG Length,
+        ULONG TotalSize
     ) -> VOID;
 
-    auto RmPadding( 
-        UCHAR* Block, 
-        ULONG* Length 
+    auto RmPadding(
+        PBYTE  Block,
+        ULONG &Length
     ) -> VOID;
 
-    auto Encrypt( 
-        UCHAR** Block, 
-        ULONG*  Length
+    auto Encrypt(
+        PBYTE Block,
+        ULONG Length
     ) -> VOID;
 
-    auto Decrypt( 
-        UCHAR* Block, 
-        ULONG* Length
+    auto Decrypt(
+        PBYTE Block,
+        ULONG &Length
     ) -> VOID;
 
     auto Xor( 
@@ -2335,10 +2343,6 @@ public:
     ) -> BOOL;
 
     auto Timer(
-        _In_ ULONG Time
-    ) -> BOOL;
-
-    auto Apc(
         _In_ ULONG Time
     ) -> BOOL;
 

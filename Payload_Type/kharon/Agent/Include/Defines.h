@@ -28,8 +28,18 @@
 #define PAGE_ALIGN( x ) ( ( (ULONG_PTR) x ) + ( ( PAGE_SIZE - ( ( (ULONG_PTR)x ) & ( PAGE_SIZE - 1 ) ) ) % PAGE_SIZE ) )
 
 #ifdef DEBUG
-#define KhDbg( x, ... ) { Self->Ntdll.DbgPrint( ( "[DEBUG::%s::%s::%d] => " x "\n" ), __FILE__ ,__FUNCTION__, __LINE__, ##__VA_ARGS__ ); }
-#define KhDbgz( x, ... ) { Ntdll.DbgPrint( ( "[DEBUG::%s::%s::%d] => " x "\n" ), __FILE__ ,__FUNCTION__, __LINE__, ##__VA_ARGS__ ); }
+#define KhDbg( x, ... ) {  \
+    Self->Ntdll.DbgPrint(  \
+        ( "[DEBUG::%s::%s::%d] => " x "\n" ), __FILE__ ,__FUNCTION__, __LINE__, ##__VA_ARGS__ );  \
+    Self->Msvcrt.printf(  \
+        ( "[DEBUG::%s::%s::%d] => " x "\n" ), __FILE__ ,__FUNCTION__, __LINE__, ##__VA_ARGS__ );  \
+}
+#define KhDbgz( x, ... ) {  \
+    Ntdll.DbgPrint(  \
+        ( "[DEBUG::%s::%s::%d] => " x "\n" ), __FILE__ ,__FUNCTION__, __LINE__, ##__VA_ARGS__ );  \
+    Msvcrt.printf(   \
+        ( "[DEBUG::%s::%s::%d] => " x "\n" ), __FILE__ ,__FUNCTION__, __LINE__, ##__VA_ARGS__ );  \
+}
 #define KH_DBG_MSG KhDbg( "dbg" );
 #else
 #define KhDbgz( x, ... );
@@ -48,8 +58,8 @@
 
 /*==============[ Dereference ]==============*/
 
-#define DEFB( x )  ( * ( BYTE* )  ( x ) )
-#define DEF( x )   ( * ( PVOID* )  ( x ) )
+#define DEF( x )   ( * ( PVOID*  ) ( x ) )
+#define DEFB( x )  ( * ( BYTE*   ) ( x ) )
 #define DEF08( x ) ( * ( UINT8*  ) ( x ) )
 #define DEF16( x ) ( * ( UINT16* ) ( x ) )
 #define DEF32( x ) ( * ( UINT32* ) ( x ) )

