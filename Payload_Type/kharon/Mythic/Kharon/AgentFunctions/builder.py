@@ -20,6 +20,7 @@ class KharonAgent(PayloadType):
     note = "Kharon agent. Version: v0.0.1"
     supports_dynamic_loading = False
     c2_profiles = ["http", "smb"]
+    mythic_encrypts = True
     translation_container = "KharonTranslator"
 
     # Path configurations
@@ -28,6 +29,7 @@ class KharonAgent(PayloadType):
     AgentCodePath = pathlib.Path(".") / ".." / "Agent"
     LoaderCodePath = pathlib.Path(".") / ".." / "Loader"
     BrowserScriptPath = AgentPath / "BrowserScripts"
+    BOFPath = pathlib.Path(".") / ".." / "Modules" / "BOF"
 
     agent_code_path = AgentPath
     agent_icon_path = AgentIconPath
@@ -167,6 +169,12 @@ class KharonAgent(PayloadType):
             logging.info(f"stdout: {stdout.decode('utf-8', errors='ignore')}")
             logging.info(f"stderr: {stderr.decode('utf-8', errors='ignore')}")
 
+            logging.info(f"bofpath: {self.BOFPath.name}")
+
+            if resp.status == BuildStatus.Success:
+                if self.BOFPath.exists():
+                    await self.upload_bof_files(resp)
+
             if not os.path.exists(agent_output_file):
                 resp.status = BuildStatus.Error
                 resp.error_message = "Agent compilation failed - no output file produced"
@@ -177,7 +185,7 @@ class KharonAgent(PayloadType):
             # Handle non-EXE formats
             if self.get_parameter("Format") != "exe":
                 resp.payload = open(agent_output_file, "rb").read()
-                resp.updated_filename = f"Kharon.{build_config['arch']}.{self.get_parameter('Format')}"
+                # resp.updated_filename = f"Kharon.{build_config['arch']}.{self.get_parameter('Format')}"
                 return resp
 
             # Step 5: Embed shellcode into loader (EXE format only)
@@ -231,6 +239,80 @@ class KharonAgent(PayloadType):
             logging.error(f"Build failed: {traceback.format_exc()}")
 
         return resp
+    
+    async def upload_bof_files(self, build_response: BuildResponse) -> None:
+        """Upload all BOF files from the Modules/BOF directory, checking if they exist in Mythic first"""
+        try:
+            logging.debug("[BOF Upload] Starting BOF files upload process")
+            bof_files = list(self.BOFPath.glob('*'))
+            
+            if not bof_files:
+                logging.info("[BOF Upload] No BOF files found in directory")
+                return
+            
+            logging.debug(f"[BOF Upload] Found {len(bof_files)} potential BOF files to process")
+
+            # Get list of existing files in Mythic
+            logging.debug("[BOF Upload] Querying Mythic for existing files...")
+            existing_files_resp = await SendMythicRPCFileSearch(MythicRPCFileSearchMessage(Filename="", LimitByCallback=False))
+            
+            if not existing_files_resp.Success:
+                logging.warning("[BOF Upload] Failed to get existing files list from Mythic, continuing anyway")
+                existing_filenames = set()
+            else:
+                existing_filenames = {f.filename for f in existing_files_resp.files}
+                logging.debug(f"[BOF Upload] Found {len(existing_filenames)} existing files in Mythic")
+
+            for bof_file in bof_files:
+                try:
+                    if not bof_file.is_file():
+                        logging.debug(f"[BOF Upload] Skipping non-file: {bof_file.name}")
+                        continue
+
+                    file_size = bof_file.stat().st_size
+                    logging.debug(f"[BOF Upload] Processing file: {bof_file.name} (Size: {file_size} bytes)")
+
+                    if bof_file.name in existing_filenames:
+                        logging.info(f"[BOF Upload] File already exists in Mythic, skipping: {bof_file.name}")
+                        continue
+
+                    # Read file content
+                    logging.debug(f"[BOF Upload] Reading file content: {bof_file.name}")
+                    with open(bof_file, 'rb') as f:
+                        file_content = f.read()
+                    
+                    if not file_content:
+                        logging.warning(f"[BOF Upload] Empty file content for: {bof_file.name}")
+                        continue
+
+                    logging.debug(f"[BOF Upload] Read {len(file_content)} bytes from {bof_file.name}")
+
+                    # Create the file in Mythic
+                    file_uuid = str(uuid.uuid4())
+                    logging.debug(f"[BOF Upload] Attempting to upload {bof_file.name} with UUID {file_uuid}")
+                    
+                    create_file_resp = await SendMythicRPCFileCreate(MythicRPCFileCreateMessage(
+                        PayloadUUID=self.uuid,
+                        Filename=bof_file.name,
+                        FileContents=file_content,
+                        DeleteAfterFetch=False
+                    ))
+                    
+                    if create_file_resp.Success:
+                        logging.info(f"[BOF Upload] Successfully uploaded BOF file: {bof_file.name}")
+                        logging.debug(f"[BOF Upload] Upload details - UUID: {file_uuid}, Size: {len(file_content)} bytes")
+                    else:
+                        error_msg = create_file_resp.Error if hasattr(create_file_resp, 'error') else "Unknown error"
+                        logging.warning(f"[BOF Upload] Failed to upload {bof_file.name}. Error: {error_msg}")
+                        logging.debug(f"[BOF Upload] Failed upload details - UUID: {file_uuid}, Size: {len(file_content)} bytes")
+                
+                except Exception as file_exception:
+                    logging.error(f"[BOF Upload] Error processing file {bof_file.name}: {str(file_exception)}")
+                    logging.debug(f"[BOF Upload] Stack trace for {bof_file.name} error:", exc_info=True)
+
+        except Exception as main_exception:
+            logging.error(f"[BOF Upload] Critical error in upload process: {str(main_exception)}")
+            logging.debug("[BOF Upload] Full stack trace:", exc_info=True)
 
     def generate_hex_array(self, shellcode_bytes: bytes) -> str:
         """Convert shellcode bytes to formatted C-style hex array"""
