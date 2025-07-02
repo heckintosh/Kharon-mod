@@ -10,14 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang \
     make \
     python3-dev \
-    libboost-all-dev \
     mingw-w64 \
     nasm \
     git \
     wget \
     lsb-release \
-    software-properties-common \
-    gnupg \
+    # software-properties-common \
+    # gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 RUN wget https://apt.llvm.org/llvm.sh \
