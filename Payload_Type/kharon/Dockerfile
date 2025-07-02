@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     python3-dev \
     mingw-w64 \
-    nasm \
+    nasm 
 
 RUN python3 -m pip install mythic-container --break-system-packages
 
