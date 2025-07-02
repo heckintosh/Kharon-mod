@@ -164,8 +164,8 @@ class ConfigCommand( CommandBase ):
     """
     Configure agent settings. Options can be combined:
     
-    config -mask [timer|none] -bypass [all|amsi|etw] -injection-sc [classic|stomp] -sleep [seconds] -bof-hook [true|false]
-           -jitter [percentage] -killdate [YYYY-MM-DD] -ppid [pid] -arg [arg] -exit [thread|process] -self-delete [true|false]
+    config -mask [timer|none] -bypass [all|amsi|etw] -injection-sc [classic] -sleep [seconds] -bof-hook [true|false]
+           -jitter [percentage] -killdate [YYYY-MM-DD] -ppid [pid] -exit [thread|process] -self-delete [true|false]
     
     Examples:
         config -mask timer -bypass all
@@ -173,7 +173,7 @@ class ConfigCommand( CommandBase ):
         config -killdate 2040-01-01 -ppid 1234 -injection-sc stomp
     """
     description = "Configure agent settings"
-    version = 3
+    version = 1
     author = "@Oblivion"
     attackmapping = ["T1059", "T1059.001", "T1059.003"]
     argument_class = ConfigArguments
@@ -259,7 +259,7 @@ class ConfigCommand( CommandBase ):
         for param in config_params:
             param_index += 1;
             task.args.add_arg(f"config_id_{param_index}", int( param["id"] ), ParameterType.Number)
-            if param["name"] in ["sleep", "jitter", "mask", "injection-sc", "injection-pe", "bypass"]:
+            if param["name"] in ["sleep", "ppid", "jitter", "mask", "injection-sc", "injection-pe", "bypass"]:
                 task.args.add_arg(param["name"], int( param["value"]), ParameterType.Number)
             elif param["name"] in ["arg"]:
                 task.args.add_arg(param["name"], param["value"], ParameterType.String)

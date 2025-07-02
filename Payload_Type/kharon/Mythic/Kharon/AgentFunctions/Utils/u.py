@@ -2,6 +2,7 @@ import struct
 from mythic_container.MythicCommandBase import *
 from mythic_container.MythicRPC import *
 from collections import OrderedDict
+import datetime
 
 import logging
 
@@ -307,6 +308,133 @@ class Parser:
         self.buffer = b''
         return remaining
     
+
+async def UpdateConfigStorage(task: PTTaskMessageAllData, config_params: dict) -> bool:
+    """
+    Updates agent configuration in storage without generating callbacks.
+    Handles the complete delete-and-recreate workflow required by Mythic's storage system.
+    
+    Args:
+        task: PTTaskMessageAllData - The current task context
+        config_params: dict - Dictionary of {parameter_name: value} to update
+        
+    Returns:
+        bool - True if successful, False if any step failed
+    """
+    try:
+        # 1. First try to extract existing configuration
+        existing_config = {}
+        try:
+            existing_config = await StorageExtract(task.Task.AgentCallbackID)
+        except Exception as e:
+            logging.warning(f"Couldn't extract existing config, starting fresh: {str(e)}")
+        
+        # 2. Delete existing storage
+        if not await DeleteStorage(task.Task.AgentCallbackID):
+            logging.error("Failed to delete existing storage")
+            return False
+
+        # 3. Prepare default configuration structure
+        default_config = {
+            "basic_info": {
+                "username": "",
+                "hostname": "",
+                "netbios": "",
+                "process_id": 0,
+                "image_path": "",
+                "internal_ip": ["0.0.0.0"],
+                "architecture": "x64"
+            },
+            "evasion": {
+                "syscall_enabled": False,
+                "stack_spoof_enabled": False,
+                "bof_hook_api_enabled": False,
+                "bypass_dotnet": "None",
+                "dotnet_bypass_exit": 0
+            },
+            "injection": {
+                "alloc_method": 0,
+                "write_method": 0
+            },
+            "killdate": {
+                "enabled": False,
+                "exit_method": 0,
+                "self_delete": False,
+                "date": "1970-01-01"
+            },
+            "process_info": {
+                "command_line": "",
+                "heap_address": "0x00000000",
+                "elevated": False,
+                "jitter": "0%",
+                "sleep_time": "0ms",
+                "parent_id": 0,
+                "process_arch": 0,
+                "kharon_base": "0x0000000000000000",
+                "kharon_len": 0,
+                "thread_id": 0
+            }
+        }
+
+        # 4. Merge existing config with defaults (if available)
+        current_config = {**default_config, **existing_config} if existing_config else default_config
+
+        # 5. Process each parameter update
+        for param, value in config_params.items():
+            if param == "bypass":
+                current_config["evasion"]["bypass_dotnet"] = {
+                    "all": 0x100,
+                    "amsi": 0x400,
+                    "etw": 0x700
+                }.get(str(value).lower(), 0x000)
+                
+            elif param == "syscall":
+                current_config["evasion"]["syscall_enabled"] = bool(value)
+                
+            elif param == "stack-spoof":
+                current_config["evasion"]["stack_spoof_enabled"] = bool(value)
+                
+            elif param == "sleep":
+                current_config["process_info"]["sleep_time"] = f"{int(value)}ms"
+                
+            elif param == "jitter":
+                jitter = max(0, min(100, int(value)))
+                current_config["process_info"]["jitter"] = f"{jitter}%"
+                
+            elif param == "killdate":
+                try:
+                    datetime.datetime.strptime(value, "%Y-%m-%d")
+                    current_config["killdate"]["date"] = value
+                    current_config["killdate"]["enabled"] = True
+                except ValueError:
+                    logging.warning(f"Invalid killdate format: {value}")
+                    
+            elif param == "ppid":
+                current_config["process_info"]["parent_id"] = max(0, int(value))
+                
+            elif param == "self-delete":
+                current_config["killdate"]["self_delete"] = bool(value)
+                
+            elif param == "exit":
+                current_config["killdate"]["exit_method"] = 0 if str(value).lower() == "thread" else 1
+                
+        rm_bool = await DeleteStorage( task.Callback.AgentCallbackID )
+
+        add_resp = await SendMythicRPCAgentStorageCreate(MythicRPCAgentstorageCreateMessage(
+            UniqueID=task.Task.AgentCallbackID,
+            DataToStore=base64.b64encode(json.dumps(current_config).encode('utf-8')).decode('utf-8')
+        ))
+
+        if not add_resp.Success:
+            logging.error("Failed to create new storage with updated config")
+            return False
+
+        return True
+
+    except Exception as e:
+        logging.error(f"Critical error in UpdateConfigStorage: {str(e)}")
+        return False
+
 async def DeleteStorage( UUID ) -> bool:
     resp = await SendMythicRPCAgentStorageRemove( MythicRPCAgentStorageRemoveMessage(
         UUID

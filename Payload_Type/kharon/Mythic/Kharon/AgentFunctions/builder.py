@@ -226,7 +226,7 @@ class KharonAgent(PayloadType):
             
             if os.path.exists(loader_output_file):
                 resp.payload = open(loader_output_file, "rb").read()
-                resp.updated_filename = f"Kharon.{build_config['arch']}.exe"
+                # resp.updated_filename = f"Kharon.{build_config['arch']}.exe"
             else:
                 resp.status = BuildStatus.Error
                 resp.error_message = "Loader compilation failed - no output file produced"

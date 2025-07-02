@@ -5,7 +5,7 @@ BUILD_PATH ?= .
 CCX64  := clang++ -target x86_64-w64-mingw32
 CCX86  := clang++ -target i686-w64-mingw32
 
-CFLAGS := -Os -nostdlib -fno-asynchronous-unwind-tables -std=c++20 -w -s -I./ -mwindows
+CFLAGS := -Os -nostdlib -fno-asynchronous-unwind-tables -std=c++20 -w -s -I./ -mconsole
 CFLAGS += -Wl,-s,--no-seh,--enable-stdcall-fixup -masm=intel -fno-exceptions
 
 SRC    := $(wildcard ./*.cc)
