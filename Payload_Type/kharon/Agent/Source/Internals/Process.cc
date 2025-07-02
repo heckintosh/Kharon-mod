@@ -122,11 +122,10 @@ auto DECLFN Process::Create(
     if ( !Success ) { goto _KH_END; }
 
     if ( Self->Ps->Ctx.Pipe ) {
-        KH_DBG_MSG
+        
         Self->Ntdll.NtClose( PipeWrite ); PipeWrite = nullptr;
 
         DWORD waitResult = Self->Krnl32.WaitForSingleObject( PsInfo->hProcess, 1000 );
-        KH_DBG_MSG
 
         if (waitResult == WAIT_TIMEOUT) {
             KhDbg( "Timeout waiting for process output" );
@@ -136,8 +135,6 @@ auto DECLFN Process::Create(
             PipeRead, nullptr, 0, nullptr, &PipeBuffSize, nullptr
         );
         if ( !Success ) { goto _KH_END; }
-
-        KH_DBG_MSG
 
         if ( PipeBuffSize > 0 ) {
             PipeBuff = (BYTE*)Self->Hp->Alloc( PipeBuffSize );
