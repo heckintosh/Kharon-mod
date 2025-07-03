@@ -15,7 +15,7 @@ class NetUserArguments(TaskArguments):
                 display_name="Username",
                 type=ParameterType.String,
                 description="Username to query (leave empty for all users)",
-                parameter_group_info=[ParameterGroupInfo(required=False)]
+                parameter_group_info=[ParameterGroupInfo(required=True)]
             ),
             CommandParameter(
                 name="domain",
@@ -65,20 +65,20 @@ class NetUserCommand(CommandBase):
     async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
         content: bytes = await get_content_by_name("kh_netuser.x64.o", task.Task.ID)
 
-        username = task.args.get_arg("username") or ""
-        domain = task.args.get_arg("domain") or ""
+        username = task.args.get_arg("username") or ''
+        domain   = task.args.get_arg("domain")   or 'localhost'
 
         display_params = ""
         if username:
-            display_params += f" {username}"
+            display_params += f" -username {username}"
         if domain:
-            display_params += f" @{domain}"
+            display_params += f" -domain {domain}"
         if not display_params:
-            display_params = " (all users)"
+            display_params = ""
 
         bof_args = [
-            {"type": "char", "value": username},
-            {"type": "char", "value": domain}
+            {"type": "wchar", "value": username},
+            {"type": "wchar", "value": domain}
         ]
 
         task.args.remove_arg("username")

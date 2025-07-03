@@ -363,7 +363,7 @@ class DotnetInlineCommand(CommandBase):
         task.args.remove_arg("keep")
         task.args.remove_arg("appdomain")
 
-        content: bytes = await get_content_by_name("dotnet_inline.x64.o", task.Task.ID)
+        content: bytes = await get_content_by_name("kh_dotnet_inline.x64.o", task.Task.ID)
         if not content:
             raise Exception("File BOF 'dotnet_inline.x64.o' not found!")
 

@@ -88,9 +88,9 @@ class IpconfigCommand( CommandBase ):
             display_params += f" -path {bin_path}"
 
         bof_args = [
-            {"type": "char", "value": hostname},
-            {"type": "char", "value": service_name},
-            {"type": "char", "value": bin_path},
+            {"type": "wchar", "value": hostname},
+            {"type": "wchar", "value": service_name},
+            {"type": "wchar", "value": bin_path},
         ]
 
         task.args.remove_arg("hostname")

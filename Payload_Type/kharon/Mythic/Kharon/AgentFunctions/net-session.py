@@ -58,10 +58,10 @@ class NetSessionCommand(CommandBase):
         display_params = ""
         
         if hostname:
-            display_params = f"-hostname \\\\{hostname}"
+            display_params = f"-hostname {hostname}"
 
         bof_args = [
-            {"type": "char", "value": hostname}
+            {"type": "wchar", "value": hostname}
         ]
 
         task.args.remove_arg("hostname")

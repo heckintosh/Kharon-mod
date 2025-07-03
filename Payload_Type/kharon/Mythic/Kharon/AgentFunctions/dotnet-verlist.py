@@ -38,7 +38,7 @@ class DotnetVerCommand( CommandBase ):
     async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
         bof_args = []
 
-        content:bytes = await get_content_by_name( "dotnet_listvers.x64.o", task.Task.ID )
+        content:bytes = await get_content_by_name( "kh_dotnet_listvers.x64.o", task.Task.ID )
 
         display_params = ""
         display_msg    = "[+] Listing the .NET versions availables\n"

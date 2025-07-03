@@ -24,14 +24,6 @@ class NetLocalGroupArguments(TaskArguments):
                 display_name="Group Name",
                 type=ParameterType.String,
                 description="Group name (required for list_members action)",
-                parameter_group_info=[
-                    ParameterGroupInfo(
-                        required=False,
-                        group_name="list_groups"),
-                    ParameterGroupInfo(
-                        required=True,
-                        group_name="list_members")
-                ]
             ),
             CommandParameter(
                 name="server",
@@ -98,22 +90,24 @@ class NetLocalGroupCommand(CommandBase):
         content: bytes = await get_content_by_name("kh_netlocalgroup.x64.o", task.Task.ID)
 
         action = task.args.get_arg("action")
-        group = task.args.get_arg("group") or ""
+        group = task.args.get_arg("group") or " "
         server = task.args.get_arg("server") or ""
         
         # Convert action to numeric type
         action_type = 0 if action == "list_groups" else 1
 
-        display_params = f"{action}"
+        display_params = f"-f {action}"
         if action == "list_members":
-            display_params += f" {group}"
+            display_params += f" -group {group}"
+        elif group:
+            display_params += f" -group {group}"
         if server:
-            display_params += f" on \\\\{server}"
+            display_params += f" -server {server}"
 
         bof_args = [
-            {"type": "short", "value": action_type},  # 0=list groups, 1=list members
-            {"type": "char", "value": server},
-            {"type": "char", "value": group}
+            {"type": "int16", "value": action_type},  # 0=list groups, 1=list members
+            {"type": "wchar", "value": server},
+            {"type": "wchar", "value": group}
         ]
 
         task.args.remove_arg("action")
