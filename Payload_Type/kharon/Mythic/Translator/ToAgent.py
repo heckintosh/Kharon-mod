@@ -153,7 +153,7 @@ def RespTasking(Tasks, Socks) -> bytes:
                             elif arg_type == "char":
                                 args_buffer.Bytes(str(value).encode("utf-8"))
                             elif arg_type == "wchar":
-                                args_buffer.Bytes(str(value).encode("utf-16"))
+                                args_buffer.Wchar(value)
                             elif arg_type == "base64":
                                 try:
                                     decoded = base64.b64decode(value)

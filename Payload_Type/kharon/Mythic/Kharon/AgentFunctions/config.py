@@ -170,7 +170,7 @@ class ConfigCommand( CommandBase ):
     Examples:
         config -mask timer -bypass all
         config -sleep 5 -jitter 10
-        config -killdate 2040-01-01 -ppid 1234 -injection-sc stomp
+        config -killdate 2040-01-01 -ppid 1234 -injection-sc clasic
     """
     description = "Configure agent settings"
     version = 1

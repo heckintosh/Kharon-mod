@@ -67,7 +67,7 @@ class WmiQueryCommand(CommandBase):
     version = 1
     author = "@Oblivion"
     argument_class = WmiQueryArguments
-    browser_script = BrowserScript(script_name="usf_new", author="@Oblivion", for_new_ui=True)
+    browser_script = BrowserScript(script_name="wmi_query_new", author="@Oblivion", for_new_ui=True)
     attributes = CommandAttributes(
         supported_os=[SupportedOS.Windows],
     )
@@ -87,10 +87,10 @@ class WmiQueryCommand(CommandBase):
             display_params += f" (namespace: {namespace})"
 
         bof_args = [
-            {"type": "char", "value": system},
-            {"type": "char", "value": namespace},
-            {"type": "char", "value": query},
-            {"type": "char", "value": resource}
+            {"type": "wchar", "value": system},
+            {"type": "wchar", "value": namespace},
+            {"type": "wchar", "value": query},
+            {"type": "wchar", "value": resource}
         ]
 
         task.args.remove_arg("query")

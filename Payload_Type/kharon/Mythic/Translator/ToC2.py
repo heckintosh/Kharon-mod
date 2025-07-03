@@ -190,6 +190,9 @@ def QuickOut( Data ):
         prefix, response_key = message_types.get(CallbackType, ("[?] Received Unknown Callback", "user_output"))
         Message = f"{prefix}:\n{CallbackOut}"
 
+        if CallbackType == 0:
+            Message = CallbackOut
+
         logging.info(f"command id 0 and message {Message}")
 
         Response = {

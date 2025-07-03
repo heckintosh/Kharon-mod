@@ -15,6 +15,7 @@
 
 /* ========= [ class macro ] ========= */
 #define MAX_RECEIVE_BUFFER (16 * 1024 * 1024) 
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define POST_EX_BUFFER_LENGTH 4 + 8 + 4 + 8 
 

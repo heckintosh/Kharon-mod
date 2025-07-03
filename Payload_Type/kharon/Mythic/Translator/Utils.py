@@ -266,6 +266,23 @@ class Packer:
 
         self.buffer += pack( fmt, len( data ) + 1, data );
         self.length += calcsize( fmt );
+    
+    def Char( self, data:bytes ) -> None:
+        if data is None:
+            data = ''
+        if isinstance(s, str):
+            data = data.encode("utf-8" )
+        fmt = "<L{}s".format(len(data) + 1)
+        self.buffer += pack(fmt, len(data)+1, data)
+        self.length += calcsize(fmt)
+    
+    def Wchar( self, data:bytes ) -> None:
+        if data is None:
+            data = ''
+        data = data.encode("utf-16_le")
+        fmt = "<L{}s".format(len(data) + 2)
+        self.buffer += pack(fmt, len(data)+2, data)
+        self.length += calcsize(fmt)
 
     def Clean( self ) -> None:
         self.buffer = b'';

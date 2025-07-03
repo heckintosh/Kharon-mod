@@ -83,9 +83,6 @@ class KharonTranslator( TranslationContainer ):
         else:
             EncryptKey = InputMsg.Message[-16:]
 
-        logging.info(f"key crypt {' '.join(f'{b:02X}' for b in InputMsg.Message)}")
-        logging.info(f"key crypt {' '.join(f'{b:02X}' for b in InputMsg.Message[-16:])}")
-
         AgentMsg  = InputMsg.Message;
         Crypter   = LokyCrypt( EncryptKey )  
         TextPlain = Crypter.decrypt( AgentMsg )
