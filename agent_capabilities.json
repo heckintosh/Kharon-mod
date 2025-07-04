@@ -2,8 +2,8 @@
   "os": ["Windows"],
   "languages": ["C/C++"] ,
   "features": {
-    "mythic": ["browser scripts", "credentials","docker", "file chunking", "file browser", "p2p", "process browser", "push c2","screenshots"],
-    "custom": ["bofs","key exchange", "killdate", "inline assembly", "powerpick", "shellcode injection"]
+    "mythic": ["browser scripts", "credentials","docker", "file chunking", "file browser", "p2p", "process browser","screenshots"],
+    "custom": ["bofs", "killdate", "inline assembly", "powerpick", "shellcode injection"]
   },
   "payload_output": ["exe", "shellcode", "service", "dll"],
   "architectures": ["x86_64"],
