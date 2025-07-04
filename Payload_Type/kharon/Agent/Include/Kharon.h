@@ -2149,7 +2149,8 @@ public:
 
     TOKEN_NODE* Node = nullptr;
 
-    auto Current( VOID ) -> HANDLE;
+    auto CurrentPs( VOID ) -> HANDLE;
+    auto CurrentThread( VOID ) -> HANDLE;
 
     auto GetByID(
         _In_ ULONG TokenID

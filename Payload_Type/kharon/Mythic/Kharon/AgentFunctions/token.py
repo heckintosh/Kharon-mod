@@ -464,9 +464,11 @@ class TokenUUIDCommand(CommandBase):
             raw_response = bytes.fromhex(response)
             psr = Parser(raw_response, len(raw_response))
             
-            token_uuid = psr.Bytes()
+            process_uuid = psr.Bytes()
+            thread_uuid  = psr.Bytes()
 
-            token_message =  f"{token_uuid[1:].decode('utf-8', 'ignore')}"
+            token_message  =  f"Process Token: {process_uuid.decode('utf-8', 'ignore')}\n"
+            token_message +=  f"Thread  Token: {thread_uuid.decode('utf-8', 'ignore')}\n"
 
             await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
                 TaskID=task.Task.ID,

@@ -2,8 +2,19 @@
 
 using namespace Root;
 
-auto DECLFN Token::Current( VOID ) -> HANDLE {
-    HANDLE hToken = INVALID_HANDLE_VALUE;
+auto DECLFN Token::CurrentPs( VOID ) -> HANDLE {
+    HANDLE hToken = nullptr;
+    
+    if ( 
+        this->TdOpen( NtCurrentThread(), TOKEN_QUERY, FALSE, &hToken ) && 
+        hToken != INVALID_HANDLE_VALUE
+    ) {
+        return hToken;
+    }
+}
+
+auto DECLFN Token::CurrentThread( VOID ) -> HANDLE {
+    HANDLE hToken = nullptr;
     
     if ( 
         this->TdOpen( NtCurrentThread(), TOKEN_QUERY, FALSE, &hToken ) && 
@@ -13,7 +24,7 @@ auto DECLFN Token::Current( VOID ) -> HANDLE {
     }
     
     if (
-        this->ProcOpen(NtCurrentProcess(), TOKEN_QUERY, &hToken ) && 
+        this->ProcOpen( NtCurrentProcess(), TOKEN_QUERY, &hToken ) && 
         hToken != INVALID_HANDLE_VALUE
     ) {
         return hToken;
@@ -156,7 +167,7 @@ auto DECLFN Token::Steal(
     LONG  TokenFlags = TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY | TOKEN_DUPLICATE;
     ULONG TokenID    = Rnd32() % 9999;
 
-    TokenHandle = this->Current();
+    TokenHandle = this->CurrentThread();
 
     this->SetPriv( TokenHandle, "SeDebugPrivilege" );
 

