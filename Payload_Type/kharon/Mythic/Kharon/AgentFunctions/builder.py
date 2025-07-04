@@ -45,7 +45,7 @@ class KharonAgent(PayloadType):
         BuildParameter(
             name="Format",
             parameter_type=BuildParameterType.ChooseOne,
-            choices=["exe", "bin"],
+            choices=["exe", "dll", "bin"],
             default_value="bin",
             description="0.2 [GLOBAL] Output format (executable or shellcode)"
         ),
