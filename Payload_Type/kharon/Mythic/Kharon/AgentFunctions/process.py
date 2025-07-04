@@ -87,10 +87,6 @@ class ProcRunCommand(CommandBase):
             TaskID=task.Task.ID,
             Success=True
         )
-    
-from mythic_container.MythicCommandBase import *
-from mythic_container.MythicRPC import *
-from .Utils.u import *
 
 class ProcPwshArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
@@ -176,12 +172,6 @@ class ProcPwshCommand(CommandBase):
             TaskID=task.Task.ID,
             Success=True
         )
-    
-
-from mythic_container.MythicCommandBase import *
-from mythic_container.MythicRPC import *
-import json
-from .Utils.u import *
 
 class ProcListArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
@@ -323,10 +313,6 @@ class ProcListCommand(CommandBase):
                 Success=False,
                 Error=str(e)
             )
-    
-from mythic_container.MythicCommandBase import *
-from mythic_container.MythicRPC import *
-from .Utils.u import *
 
 class ProcKillArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
@@ -558,7 +544,7 @@ class ProcHandlesCommand(CommandBase):
     """
     version = 1
     author = "@Oblivion"
-    argument_class = ScDescArguments
+    argument_class = ProcHandlesArguments
     browser_script = BrowserScript(script_name="usf_new", author="@Oblivion", for_new_ui=True)
     attributes = CommandAttributes(
         supported_os=[SupportedOS.Windows],
