@@ -468,8 +468,9 @@ class KharonAgent(PayloadType):
 
     def generate_compile_loader(self, build_dir: str, config: dict) -> str:
         """Generate the compilation command for the loader"""
-        build_type = f"{config['arch']}-{'debug' if config['debug'] == 'on' else 'release'}"
-        return f"make -C {build_dir} {build_type} BUILD_PATH={build_dir}"
+        build_type   = f"{config['arch']}-{'debug' if config['debug'] == 'on' else 'release'}"
+        main_choices = {"exe": 0x100, "dll": 0x200, "svc": 0x300}
+        return f"make -C {build_dir} {build_type} BUILD_PATH={build_dir} KH_MAIN={main_choices.get(self.get_parameter('Format'))}"
 
     def get_agent_output_path(self, build_dir: str) -> str:
         """Determine the correct output file path for the agent"""

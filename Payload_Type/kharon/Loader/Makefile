@@ -8,6 +8,8 @@ CCX86  := clang++ -target i686-w64-mingw32
 CFLAGS := -Os -nostdlib -fno-asynchronous-unwind-tables -std=c++20 -w -s -I./ -mconsole
 CFLAGS += -Wl,-s,--no-seh,--enable-stdcall-fixup -masm=intel -fno-exceptions
 
+DEFS := -D KH_MAIN=${KH_MAIN}
+
 SRC    := $(wildcard ./*.cc)
 
 OBJ64  := $(SRC:%.cc=%.x64.obj) 
@@ -28,19 +30,19 @@ x86-debug: x86
 
 x64: $(OBJ64)
 	@ echo "compiling x64 project"
-	@ $(CCX64) $(BUILD_PATH)/Bin/obj/*.x64.obj -o $(BUILD_PATH)/Bin/$(NAME).x64.exe $(CFLAGS) 
+	@ $(CCX64) $(BUILD_PATH)/Bin/obj/*.x64.obj -o $(BUILD_PATH)/Bin/$(NAME).x64.exe $(DEFS) $(CFLAGS) 
 
 x86: $(OBJ86)
 	@ echo "compiling x86 project"
-	@ $(CCX86) $(BUILD_PATH)Bin//obj/*.x86.obj -o $(BUILD_PATH)/Bin/$(NAME).x86.exe $(CFLAGS)
+	@ $(CCX86) $(BUILD_PATH)Bin//obj/*.x86.obj -o $(BUILD_PATH)/Bin/$(NAME).x86.exe $(DEFS) $(CFLAGS)
 
 %.x64.obj: %.cc
 	@ echo "-> compiling $< to $(notdir $@)"
-	@ $(CCX64) -o $(BUILD_PATH)/Bin/obj/$(notdir $@) -c $< $(CFLAGS)
+	@ $(CCX64) -o $(BUILD_PATH)/Bin/obj/$(notdir $@) -c $< $(DEFS) $(CFLAGS)
 
 %.x86.obj: %.cc
 	@ echo "-> compiling $< to $(notdir $@)"
-	@ $(CCX86) -o $(BUILD_PATH)/Bin/obj/$(notdir $@) -c $< $(CFLAGS) $(DEFS)
+	@ $(CCX86) -o $(BUILD_PATH)/Bin/obj/$(notdir $@) -c $< $(DEFS) $(CFLAGS) $(DEFS)
 
 clean:
 	@ rm -f $(BUILD_PATH)/obj/*.x64.obj
