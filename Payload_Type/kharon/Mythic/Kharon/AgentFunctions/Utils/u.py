@@ -98,24 +98,21 @@ BF_KRB_TRIAGE = 5112;
 BF_KRB_DESCB  = 5113;
 BF_KRB_HASH   = 5114;
 
-
 SB_INJ_SC   = 30;
 SB_INJ_PE   = 31;
 
 T_CONFIG    = 10;
 T_PROCESS   = 11;
-T_INJECTION = 12;
-T_FILESYS   = 13;
-T_UPLOAD    = 14;
-T_DOWNLOAD  = 15;
-T_INFO      = 16;
-T_SELFDEL   = 17;
-T_EXIT      = 18;
-T_DOTNET    = 19;
-T_SOCKS     = 20;
-T_EXEC_SC   = 21;
-T_EXEC_PE   = 22;
-T_EXEC_BOF  = 23;
+T_FILESYS   = 12;
+T_UPLOAD    = 13;
+T_DOWNLOAD  = 14;
+T_INFO      = 15;
+T_SELFDEL   = 16;
+T_EXIT      = 17;
+T_SOCKS     = 18;
+T_EXEC_BOF  = 19;
+T_TOKEN     = 20;
+T_PIVOT     = 21;
 
 SB_DT_INLINE = 5;
 SB_DT_UNLOAD = 6;
@@ -165,19 +162,6 @@ Commands = {
     "download":  {"hex_code": T_DOWNLOAD},
     "info"    :  {"hex_code": T_INFO},
     "exec-bof":  {"hex_code": T_EXEC_BOF},
-    "exec-sc" :  {"hex_code": T_EXEC_SC},
-    "exec-pe" :  {"hex_code": T_EXEC_PE},
-
-    "dotnet": {
-        "hex_code": T_DOTNET,
-        "subcommands": {
-            "inline": { "sub": SB_DT_INLINE },
-            "spawn" : { "sub": SB_DT_SPAWN },
-            "list-version": { "sub": SB_DT_LIST },
-            "unload": { "sub": SB_DT_UNLOAD },
-            "invoke": { "sub": SB_DT_INVOKE }
-        }
-    },
 
     "bof": {
         "whoami":     {"sub": BF_WHOAMI},

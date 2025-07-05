@@ -131,7 +131,7 @@ class LdapSearchCommand(CommandBase):
     )
 
     async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
-        content: bytes = await get_content_by_name("ldapsearch.x64.o", task.Task.ID)
+        content: bytes = await get_content_by_name("kh_ldapsearch.x64.o", task.Task.ID)
 
         query = task.args.get_arg("search")
         attributes = task.args.get_arg("attributes") or "*"

