@@ -47,7 +47,7 @@ Some command to kerberos interaction like klist, ptt, describe, triage, s4u and 
 - Registry Interaction
 - SCM Interaction
 - Token Manipulation
-- Any Netapi32 commands
+- Some Netapi32 commands
 - Slack cookie dump
 - ipconfig, whoami, env, arp, dns cache and uptime
 

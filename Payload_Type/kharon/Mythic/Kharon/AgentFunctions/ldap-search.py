@@ -152,7 +152,7 @@ class LdapSearchCommand(CommandBase):
         if hostname:
             display_params += f" -hostname {hostname}]"
         if dn:
-            display_params += f" -dn {dn}]"
+            display_params += f" -dn {dn}"
         if ldaps:
             display_params += " -ldaps"
 

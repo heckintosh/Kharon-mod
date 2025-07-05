@@ -175,7 +175,6 @@ class ConfigCommand( CommandBase ):
     description = "Configure agent settings"
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1059", "T1059.001", "T1059.003"]
     argument_class = ConfigArguments
     attributes = CommandAttributes(
         supported_os=[SupportedOS.Windows],

