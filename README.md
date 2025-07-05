@@ -37,7 +37,6 @@ Advanced movement techniques:
 
 ## Process Creation
 - **PPID Spoofing**: Masquerade as child of legitimate processes (explorer.exe, svchost.exe, etc.)
-- **Argument Spoofing**: Forge command-line arguments to evade detection
 - **BlockDLL Enforcement**: Restrict non-Microsoft DLL injection
 
 ## Kerberos Interactions
