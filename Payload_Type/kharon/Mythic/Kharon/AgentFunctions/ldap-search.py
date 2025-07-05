@@ -10,11 +10,11 @@ class LdapSearchArguments(TaskArguments):
         super().__init__(command_line, **kwargs)
         self.args = [
             CommandParameter(
-                name="query",
-                cli_name="query",
-                display_name="LDAP Query",
+                name="search",
+                cli_name="search",
+                display_name="LDAP Search",
                 type=ParameterType.String,
-                description="The LDAP search query to execute",
+                description="The LDAP search to execute",
                 parameter_group_info=[ParameterGroupInfo(required=True)]
             ),
             CommandParameter(
@@ -110,22 +110,16 @@ class LdapSearchArguments(TaskArguments):
 
 
 class LdapSearchCommand(CommandBase):
-    cmd = "ldap-query"
+    cmd = "ldap-search"
     needs_admin = False
-    help_cmd = "ldap-query -query <query> [--attributes <attrs>] [--count <limit>] [--scope <1-3>] [--hostname <host>] [--dn <base_dn>] [--ldaps]"
+    help_cmd = "ldap-search -search <search> [--attributes <attrs>] [--count <limit>] [--scope <1-3>] [--hostname <host>] [--dn <base_dn>] [--ldaps]"
     description = """
-    Executes an LDAP query against a domain controller.
+    Executes an LDAP search against a domain controller.
     
     Search Scopes:
     1 = Base (only the base object)
     2 = OneLevel (immediate children of base object)
     3 = Subtree (base object and all descendants)
-    
-    MITRE ATT&CK Techniques:
-    T1018 - Remote System Discovery
-    T1069.002 - Permission Groups Discovery: Domain Groups
-    T1087 - Account Discovery
-    T1482 - Domain Trust Discovery
     
     Category: Beacon Object File
     """
@@ -139,7 +133,7 @@ class LdapSearchCommand(CommandBase):
     async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
         content: bytes = await get_content_by_name("ldapsearch.x64.o", task.Task.ID)
 
-        query = task.args.get_arg("query")
+        query = task.args.get_arg("search")
         attributes = task.args.get_arg("attributes") or "*"
         count = task.args.get_arg("count") or 0
         scope = task.args.get_arg("scope") or 3
@@ -150,26 +144,26 @@ class LdapSearchCommand(CommandBase):
         # Build display parameters
         display_params = f"'{query}'"
         if attributes != "*":
-            display_params += f" (attrs: {attributes})"
+            display_params += f" -attributes {attributes})"
         if count > 0:
-            display_params += f" [limit: {count}]"
+            display_params += f" -count {count}]"
         if scope != 3:
-            display_params += f" [scope: {scope}]"
+            display_params += f" -scope {scope}]"
         if hostname:
-            display_params += f" [host: {hostname}]"
+            display_params += f" -hostname {hostname}]"
         if dn:
-            display_params += f" [base DN: {dn}]"
+            display_params += f" -dn {dn}]"
         if ldaps:
-            display_params += " [LDAPS]"
+            display_params += " -ldaps"
 
         bof_args = [
-            {"type": "char", "value": query},
-            {"type": "char", "value": attributes},
-            {"type": "int", "value": count},
-            {"type": "int", "value": scope},
-            {"type": "char", "value": hostname},
-            {"type": "char", "value": dn},
-            {"type": "int", "value": 1 if ldaps else 0}
+            {"type": "char" , "value": query},
+            {"type": "char" , "value": attributes},
+            {"type": "int32", "value": count},
+            {"type": "int32", "value": scope},
+            {"type": "char" , "value": hostname},
+            {"type": "char" , "value": dn},
+            {"type": "int32", "value": 1 if ldaps else 0}
         ]
 
         for arg in ["query", "attributes", "count", "scope", "hostname", "dn", "ldaps"]:
