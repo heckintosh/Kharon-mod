@@ -78,11 +78,11 @@ EXTERN_C __fastcall NTSTATUS ExecSyscall( ... );
 
 /* ======== [ Injection ] ======== */
 
-enum {
-    MaskTimer = 1,
-    MaskApc,
-    MaskWait
-} KH_MASK;
+enum eMask {
+    Timer = 1,
+    Apc,
+    None
+};
 
 enum Reg {
     eRax,

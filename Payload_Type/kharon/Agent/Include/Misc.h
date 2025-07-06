@@ -211,106 +211,99 @@ namespace Str {
     ) -> PCHAR;
 }
 
-enum {
-    KhGetTask,
-    KhPostReq,
-    KhNoTask = 4,
-    KhQuickMsg,
-    KhError,
-    KhQuickOut,
-    KhCheckin = 241,
-} KH_CORE;
 
-enum {
-    TdRandom,
-    TdTarget,
-    TdHwbp
-} KH_TD_ENUM;
+#define TSK_LENGTH ( Enm::Task::TaskLast - 9 )
 
-enum {
-    TskConfig = 10,
-    TskProcess,
-    TskFileSystem,
-    TskUpload,
-    TskDownload,
-    TskGetInfo,
-    TskSelfDelete,
-    TskExit,
-    TskSocks,
-    TskExecBof,
-    TskToken,
-    TskPivot,
-    TaskLast
-} KH_TASKS;
+namespace Enm {
+    enum Task {
+        GetTask,
+        PostReq,
+        NoTask = 4,
+        QuickMsg,
+        Error,
+        QuickOut,
+        Checkin = 241,
 
-enum {
-    PvtLink = 10,
-    PvtUnlink,
-    PvtList
-} KH_PIVOT;
+        Config = 10,
+        Process,
+        FileSystem,
+        Upload,
+        Download,
+        GetInfo,
+        SelfDelete,
+        Exit,
+        Socks,
+        ExecBof,
+        Token,
+        Pivot,
+        TaskLast
+    };
 
-enum {
-    DotInline = 5,
-    DtUnload,
-    DotList,
-    DotInvoke,
-    DotFork
-} KH_DOTNET;
+    enum Thread {
+        Random,
+        Target,
+        Hwbp
+    };
 
-enum {
-    UpInit,
-    UpChunk
-} KH_UP;
+    enum Pivot {
+        Link = 10,
+        Unlink,
+        List
+    };
 
-#define TSK_LENGTH ( TaskLast - 9 )
+    enum Up {
+        Init,
+        Chunk
+    };
 
-enum {
-    CfgJitter = 14,
-    CfgSleep,
-    CfgMask,
-    CfgSc,
-    CfgPe,
-    CfgPpid,
-    CfgBlockDlls,
-    CfgCurDir,
-    CfgArg,
-    CfgSpawn,
-    CfgKilldate,
-    CfgWorktime
-} SB_CONFIG;
+    enum Config{
+        Jitter = 14,
+        Sleep,
+        Mask,
+        Sc,
+        Pe,
+        Ppid,
+        BlockDlls,
+        CurDir,
+        Arg,
+        Spawn,
+        Killdate,
+        Worktime
+    };
 
-enum {
-    TknGetUUID = 10,
-    TknSteal,
-    TknMake,
-    TknGetPriv,
-    TknStore,
-    TknUse,
-    TknRm,
-    TknRev2Self
-} SB_TOKEN;
+    enum Token {
+        GetUUID = 10,
+        Steal,
+        Make,
+        GetPriv,
+        Store,
+        Use,
+        Rm,
+        Rev2Self
+    };
 
-enum {
-    SbExitThread = 20,
-    SbExitProcess
-} SB_EXIT;
+    enum Exit {
+        Thread = 20,
+        Process
+    };
 
-enum {
-    SbPsList = 20,
-    SbPsCreate,
-    SbPsKill
-} SB_PROCESS;
+    enum Ps {
+        List = 20,
+        Create,
+        Kill
+    };
 
-enum {
-    FsList = 30,
-    FsRead,
-    FsCwd,
-    FsMove,
-    FsCopy,
-    FsMakeDir,
-    FsDelete,
-    FsChangeDir
-} SB_FILESYSTEM;
+    enum Fs {
+        List = 30,
+        Read,
+        Cwd,
+        Move,
+        Copy,
+        MakeDir,
+        Delete,
+        ChangeDir
+    };
+}
 
 EXTERN_C VOID volatile ___chkstk_ms( VOID );
 

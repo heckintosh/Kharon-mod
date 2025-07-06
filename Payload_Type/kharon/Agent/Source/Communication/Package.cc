@@ -322,7 +322,7 @@ auto DECLFN Package::Checkin( VOID ) -> PACKAGE* {
     Package->Encrypt = FALSE;
 
     this->Pad( Package, UC_PTR( Self->Session.AgentID ), 36 );
-    this->Byte( Package, KhCheckin );
+    this->Byte( Package, Enm::Task::Checkin );
 
     return Package;
 }
@@ -336,7 +336,7 @@ auto DECLFN Package::PostJobs( VOID ) -> PACKAGE* {
     Package->Encrypt = FALSE;
 
     this->Pad( Package, UC_PTR( Self->Session.AgentID ), 36 );
-    this->Byte( Package, KhPostReq );
+    this->Byte( Package, Enm::Task::PostReq );
 
     return Package;
 }
@@ -352,7 +352,7 @@ auto DECLFN Package::NewTask(
     Package->Encrypt = FALSE;
 
     this->Pad( Package, UC_PTR( Self->Session.AgentID ), 36 );
-    this->Byte( Package, KhGetTask );
+    this->Byte( Package, Enm::Task::GetTask );
 
     return Package;
 }
@@ -528,7 +528,7 @@ auto DECLFN Package::SendOut(
     Package->Length = 0;
 
     this->Pad( Package, UC_PTR( Self->Session.AgentID ), 36 );
-    this->Byte( Package, KhQuickOut );
+    this->Byte( Package, Enm::Task::QuickOut );
 
     this->Pad( Package, (UCHAR*)UUID, 36 );
     this->Int32( Package, CmdID );
@@ -553,7 +553,7 @@ auto DECLFN Package::SendMsg(
     Package->Length = 0;
 
     this->Pad( Package, (PUCHAR)Self->Session.AgentID, 36 );
-    this->Byte( Package, KhQuickMsg );
+    this->Byte( Package, Enm::Task::QuickMsg );
 
     if ( PROFILE_C2 == PROFILE_SMB ) {
         // this->Pad( Package, (PUCHAR)SmbUUID, 36 );

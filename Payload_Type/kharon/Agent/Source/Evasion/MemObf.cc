@@ -24,9 +24,9 @@ auto DECLFN Mask::Main(
     KhDbg( "sleep during: %d ms", RndTime );
 
     switch( this->Ctx.TechniqueID ) {
-    case MaskTimer:
+    case eMask::Timer:
         Success = this->Timer( RndTime ); break;
-    case MaskWait:
+    case eMask::None:
         Success = this->Wait( RndTime ); break;
     }
 
