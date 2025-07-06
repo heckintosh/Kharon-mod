@@ -1257,11 +1257,13 @@ auto DECLFN Task::Token(
             break;
         }
         case Enm::Token::ListPriv: {
-            ULONG PrivListLen  = 0;
-            PVOID PrivList     = nullptr;
+            ULONG  PrivListLen = 0;
+            PVOID  PrivList    = nullptr;
             HANDLE TokenHandle = Self->Tkn->CurrentPs();
 
             PrivList = Self->Tkn->ListPrivs( TokenHandle, PrivListLen );
+
+            Self->Pkg->Int32( Package, PrivListLen );
 
             for ( INT i = 0; i < PrivListLen; i++ ) {
                 Self->Tkn->SetPriv( TokenHandle, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
@@ -1431,6 +1433,9 @@ auto DECLFN Task::Exit(
     _In_ JOBS* Job
 ) -> ERROR_CODE {
     INT8 ExitType = Self->Psr->Byte( Job->Psr );
+
+    PACKAGE* Package = Self->Pkg->Create( Job->CmdID, Job->UUID );
+    Self->Pkg->Transmit( Package, 0, 0 );
 
     if ( ExitType == Enm::Exit::Proc ) {
         Self->Ntdll.RtlExitUserProcess( EXIT_SUCCESS );
