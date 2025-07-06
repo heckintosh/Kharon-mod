@@ -31,7 +31,7 @@ auto DECLFN Thread::Enum(
             SysThreadInfo = SysProcInfo->Threads;
 
             for ( INT i = 0; i < SysProcInfo->NumberOfThreads; i++ ) {
-                if ( Type == TdRandom ) {
+                if ( Type == Enm::Thread::Random ) {
                     if ( HandleToUlong( SysThreadInfo[i].ClientId.UniqueThread ) != Self->Session.ThreadID ) {
                         ThreadID = HandleToUlong( SysThreadInfo[i].ClientId.UniqueThread ); goto _KH_END;
                     }

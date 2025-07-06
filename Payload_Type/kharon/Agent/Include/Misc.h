@@ -256,7 +256,7 @@ namespace Enm {
         Chunk
     };
 
-    enum Config{
+    enum Config {
         Jitter = 14,
         Sleep,
         Mask,
@@ -276,7 +276,7 @@ namespace Enm {
         Steal,
         Make,
         GetPriv,
-        Store,
+        ListPriv,
         Use,
         Rm,
         Rev2Self
@@ -284,17 +284,17 @@ namespace Enm {
 
     enum Exit {
         Thread = 20,
-        Process
+        Proc
     };
 
     enum Ps {
-        List = 20,
+        ListPs = 20,
         Create,
         Kill
     };
 
     enum Fs {
-        List = 30,
+        ListFl = 30,
         Read,
         Cwd,
         Move,

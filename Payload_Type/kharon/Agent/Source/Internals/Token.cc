@@ -244,8 +244,11 @@ auto DECLFN Token::GetPrivs(
     PrivList = this->ListPrivs( TokenHandle, PrivListLen );
 
     for ( INT i = 0; i < PrivListLen; i++ ) {
-        if ( ! this->SetPriv( TokenHandle, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName ) ) return FALSE;
+        this->SetPriv( TokenHandle, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
+        Self->Hp->Free( static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
     }
+
+    Self->Hp->Free( PrivList );
 
     return TRUE;
 }

