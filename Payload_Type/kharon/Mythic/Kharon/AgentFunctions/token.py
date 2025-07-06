@@ -145,6 +145,8 @@ class TokenStealCommand(CommandBase):
         )
         
         task.args.add_arg("action", "steal")
+        task.args.add_arg("pid", task.args.get_arg('pid'), ParameterType.Number)
+        task.args.add_arg("use", int(task.args.get_arg('use')), ParameterType.Number)
         
         return response
 
@@ -464,11 +466,13 @@ class TokenUUIDCommand(CommandBase):
             raw_response = bytes.fromhex(response)
             psr = Parser(raw_response, len(raw_response))
             
-            process_uuid = psr.Bytes()
-            thread_uuid  = psr.Bytes()
+            # process_uuid = psr.Bytes()
+            # thread_uuid  = psr.Bytes()
 
-            token_message  =  f"Process Token: {process_uuid.decode('utf-8', 'ignore')}\n"
-            token_message +=  f"Thread  Token: {thread_uuid.decode('utf-8', 'ignore')}\n"
+            token_message  =  f"Token: {psr.buffer.decode('cp850', errors="")}\n"
+
+            # token_message  =  f"Process Token: {process_uuid.decode('utf-8', 'ignore')}\n"
+            # token_message +=  f"Thread  Token: {thread_uuid.decode('utf-8', 'ignore')}\n"
 
             await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
                 TaskID=task.Task.ID,

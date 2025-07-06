@@ -175,7 +175,6 @@ def RespTasking(Tasks, Socks) -> bytes:
             tsk_psr.Int32(args_buffer.length) 
             tsk_psr.Pad(args_buffer.buffer)
         else:
-            # Handle regular parameters
             for Key, Val in Parameters.items():
                 if Key != "action":
                     try:

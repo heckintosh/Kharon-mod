@@ -25,7 +25,7 @@ Allows customization of injection techniques, including:
 
 ### Methods
 - **Dotnet**: Can inject .NET assembly and execution in memory. 
-- **Powershell**: Its using PowerPick, you can pass the script url and command for execution. 
+- **Powershell**: Its using PowerPick, you can pass the command for execution. 
 - **Shellcode**: Standard shellcode execution in memory.
 - **BOF (Beacon Object File)**: Beyond standard BOF execution, the agent provides custom APIs such as metioned in documentation. Future updates may include more APIs. The advantage of using these APIs is that they execute in the preferred context with stack spoofing and/or indirect syscalls.  
 
