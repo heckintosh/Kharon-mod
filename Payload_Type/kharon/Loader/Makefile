@@ -5,7 +5,7 @@ BUILD_PATH ?= .
 CCX64  := clang++ -target x86_64-w64-mingw32
 CCX86  := clang++ -target i686-w64-mingw32
 
-CFLAGS := -Os -nostdlib -fno-asynchronous-unwind-tables -std=c++20 -w -s -I./ -mconsole
+CFLAGS := -Os -nostdlib -fno-asynchronous-unwind-tables -std=c++20 -w -s -I./ 
 CFLAGS += -Wl,-s,--no-seh,--enable-stdcall-fixup -masm=intel -fno-exceptions
 
 DEFS := -D KH_MAIN=${KH_MAIN}
@@ -19,13 +19,13 @@ all: release debug
 release: x64 x86
 debug: 	 x64-debug x86-debug
 
-x64-release: x64
-x86-release: x86
+x64-release: x64 -mwindow
+x86-release: x86 -mwindow
 
-x64-debug: CFLAGS += -D DEBUG
+x64-debug: CFLAGS += -D DEBUG -mconsole
 x64-debug: x64
 
-x86-debug: CFLAGS += -D DEBUG
+x86-debug: CFLAGS += -D DEBUG -mconsole
 x86-debug: x86
 
 x64: $(OBJ64)
