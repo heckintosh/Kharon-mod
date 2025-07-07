@@ -113,7 +113,7 @@ EXTERN_C UPTR EndPtr();
 #endif // KH_HEAP_MASK
 
 #ifndef KH_SLEEP_MASK
-#define KH_SLEEP_MASK MaskTimer
+#define KH_SLEEP_MASK eMask::Timer
 #endif // KH_SLEEP_MASK
 
 #ifndef SMB_PIPE_NAME
@@ -2253,6 +2253,8 @@ public:
     auto Free(
         _In_ PVOID Block
     ) -> BOOL;
+
+    auto Clean( VOID ) -> VOID;
 };
 
 class Memory {

@@ -78,7 +78,7 @@ auto DECLFN Heap::Free(
 ) -> BOOL {
     if ( !Block ) return FALSE;
 
-    HEAP_NODE* Current  = Node;
+    HEAP_NODE* Current  = this->Node;
     HEAP_NODE* Previous = NULL;
     BOOL Result = FALSE;
 
@@ -108,4 +108,13 @@ auto DECLFN Heap::Free(
     }
 
     return Result;
+}
+
+auto DECLFN Heap::Clean( VOID ) -> VOID {
+    HEAP_NODE* Current = this->Node;
+
+    while ( Current ) {
+        this->Free( Current->Block );
+        Current = Current->Next;
+    }
 }

