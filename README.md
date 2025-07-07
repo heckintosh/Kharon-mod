@@ -12,6 +12,7 @@ C2 Agent for Mythic with advanced evasion capabilities, supporting dotnet/powers
 - Registry Commands
 - Kerbeus Commands
 - Beacon SMB
+- Upload/Download
 
 ## Listener
 - **HTTP/S**: Web-based encrypted communication
