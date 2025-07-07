@@ -9,8 +9,6 @@ C2 Agent for Mythic with advanced evasion capabilities, supporting dotnet/powers
 
 ## TODO
 - Token Manipulation (fix)
-- Registry Commands
-- Kerbeus Commands
 - Beacon SMB
 - Upload/Download
 
