@@ -7,6 +7,12 @@ C2 Agent for Mythic with advanced evasion capabilities, supporting dotnet/powers
 > [!IMPORTANT]  
 > This project is under development.
 
+## TODO
+- Token Manipulation (fix)
+- Registry Commands
+- Kerbeus Commands
+- Beacon SMB
+
 ## Listener
 - **HTTP/S**: Web-based encrypted communication
 - **SMB**: Named pipe-based C2 channel
