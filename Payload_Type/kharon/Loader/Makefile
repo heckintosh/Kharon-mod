@@ -19,8 +19,11 @@ all: release debug
 release: x64 x86
 debug: 	 x64-debug x86-debug
 
-x64-release: x64 -mwindow
-x86-release: x86 -mwindow
+x64-release: x64 
+x64-release: CFLAGS += -mwindows
+
+x86-release: x86
+x86-release: CFLAGS += -mwindows
 
 x64-debug: CFLAGS += -D DEBUG -mconsole
 x64-debug: x64
