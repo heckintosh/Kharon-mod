@@ -290,6 +290,9 @@ auto DECLFN Coff::LoadLibraryW(
 ) -> HMODULE {
     G_KHARON
 
+    if (LibraryName == nullptr)
+        return nullptr;
+
     CHAR LibA[MAX_PATH] = { 0 };
     Str::WCharToChar( LibA, LibraryName, MAX_PATH );
 
