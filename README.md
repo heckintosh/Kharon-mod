@@ -4,6 +4,12 @@
 
 C2 Agent for Mythic with advanced evasion capabilities, supporting dotnet/powershell/shellcode/BOF memory execution, lateral movement, pivoting, and more. Kharon is a fully Position-Independent Code (PIC) shellcode. 
 
+# Author links
+- [Linkedin](https://www.linkedin.com/in/josu%C3%A9-m-6311882a4/)
+- [Blog](https://oblivion-malware.xyz/)
+- [X](https://x.com/awwhwhasz)
+- [Github](https://github.com/entropy-z)
+
 > [!IMPORTANT]  
 > This project is under development.
 
@@ -11,6 +17,7 @@ C2 Agent for Mythic with advanced evasion capabilities, supporting dotnet/powers
 - Token Manipulation (fix)
 - Beacon SMB
 - Upload/Download
+- WinRM Exec
 
 ## Listener
 - **HTTP/S**: Web-based encrypted communication
@@ -57,12 +64,5 @@ Some command to kerberos interaction like klist, ptt, describe, triage, s4u and 
 - Some Netapi32 commands
 - Slack cookie dump
 - ipconfig, whoami, env, arp, dns cache and uptime
-
-
-# Author links
-- [Linkedin](https://www.linkedin.com/in/josu%C3%A9-m-6311882a4/)
-- [Blog](https://oblivion-malware.xyz/)
-- [X](https://x.com/awwhwhasz)
-- [Github](https://github.com/entropy-z)
 
 Check the [References](REFERENCES.md)!
