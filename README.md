@@ -10,6 +10,8 @@ C2 Agent for Mythic with advanced evasion capabilities, supporting dotnet/powers
 - [X](https://x.com/awwhwhasz)
 - [Github](https://github.com/entropy-z)
 
+---
+
 > [!IMPORTANT]  
 > This project is under development.
 
