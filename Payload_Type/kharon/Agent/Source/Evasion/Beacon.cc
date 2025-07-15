@@ -213,7 +213,7 @@ auto DECLFN Coff::WriteProcessMemory(
     SIZE_T *Written
 )->BOOL {
     G_KHARON
-    return Self->Mm->Write( BaseAddress, (BYTE*)Buffer, Size, Written );
+    return Self->Mm->Write( BaseAddress, (BYTE*)Buffer, Size, Written, hProcess );
 }
 
 auto DECLFN Coff::ReadProcessMemory(
@@ -450,11 +450,11 @@ auto Coff::AddValue(
     if ( !key || Self->Cf->GetValue( key ) ) return FALSE;
 
     VALUE_DICT* NewData = (VALUE_DICT*)Self->Hp->Alloc( sizeof( VALUE_DICT ) );
-    if ( !NewData ) return FALSE;
+    if ( ! NewData ) return FALSE;
     
-    size_t keyLen = Str::LengthA(key);
-    NewData->Key = (CHAR*)Self->Hp->Alloc(keyLen + 1);
-    if (!NewData->Key) {
+    size_t keyLen = Str::LengthA( key );
+    NewData->Key  = (CHAR*)Self->Hp->Alloc( keyLen + 1 );
+    if ( ! NewData->Key) {
         Self->Hp->Free(NewData);
         return FALSE;
     }
@@ -463,11 +463,11 @@ auto Coff::AddValue(
     NewData->Key[keyLen] = '\0';
     NewData->Ptr = ptr;
 
-    if (!Self->Cf->UserData) {
+    if ( ! Self->Cf->UserData ) {
         Self->Cf->UserData = NewData;
     } else {
         VALUE_DICT* Tail = Self->Cf->UserData;
-        while (Tail->Next) {
+        while ( Tail->Next ) {
             Tail = Tail->Next;
         }
         Tail->Next = NewData;

