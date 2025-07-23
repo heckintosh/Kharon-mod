@@ -2627,8 +2627,9 @@ typedef enum _WORKERFACTORYINFOCLASS
 /* ========== [ Expands ] ========== */
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
 
-#define NtCurrentProcess() ( (HANDLE) (LONG_PTR)-1 )
-#define NtCurrentThread()  ( (HANDLE) (LONG_PTR)-2 )
+#define NtCurrentProcessId() HandleToUlong( NtCurrentTeb()->ClientId.UniqueProcess )
+#define NtCurrentProcess()   ( (HANDLE) (LONG_PTR)-1 )
+#define NtCurrentThread()    ( (HANDLE) (LONG_PTR)-2 )
 
 #define NtCurrentPeb() ( NtCurrentTeb()->ProcessEnvironmentBlock )
 

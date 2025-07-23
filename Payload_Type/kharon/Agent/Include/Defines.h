@@ -57,6 +57,15 @@
 #define BEG_BUFFER_LENGTH  0x1000
 #define PIPE_BUFFER_LENGTH 0x10000
 
+#define QuickMsg( x, ... )  Self->Pkg->FmtMsg( DefUUID, CALLBACK_NO_PRE_MSG, x, ##__VA_ARGS__ )
+#define QuickErr( x, ... )  Self->Pkg->FmtMsg( DefUUID, CALLBACK_ERROR,      x, ##__VA_ARGS__ )
+#define QuickOut( x, y, z, v ) Self->Pkg->SendOut( x, y, z, v, CALLBACK_NO_PRE_MSG )
+#define QuickOut( x, y, z, v ) Self->Pkg->SendOut( x, y, z, v, CALLBACK_NO_PRE_MSG )
+
+#define hAlloc( x )         Self->Hp->Alloc( x )
+#define hReAlloc( x, y )    Self->Hp->ReAlloc( x, y )
+#define hFree( x )          Self->Hp->Free( x )
+
 /*==============[ Dereference ]==============*/
 
 #define DEF( x )   ( * ( PVOID*  ) ( x ) )

@@ -99,7 +99,7 @@ auto Socket::InitWSA( VOID ) -> BOOL {
     WSADATA WsData = { 0 };
     DWORD   Result = 0;
 
-    if ( !Self->Sckt->Initialized ) {
+    if ( !this->Initialized ) {
         KhDbg( "Init Windows Socket..." )
 
         if ( ( Result = Self->Ws2_32.WSAStartup( MAKEWORD( 2, 2 ), &WsData ) ) != 0 )
@@ -110,7 +110,7 @@ auto Socket::InitWSA( VOID ) -> BOOL {
             return FALSE;
         }
 
-        Self->Sckt->Initialized = TRUE;
+        this->Initialized = TRUE;
     }
 
     return TRUE;

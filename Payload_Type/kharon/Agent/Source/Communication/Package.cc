@@ -542,6 +542,57 @@ auto DECLFN Package::SendOut(
     return result;
 }
 
+auto DECLFN Package::FmtMsg(
+    _In_ CHAR* UUID,
+    _In_ ULONG Type,
+    _In_ CHAR* Message,
+    ...    
+) -> BOOL {
+    va_list VaList = { 0 };
+    va_start( VaList, Message );
+
+    BOOL  result   = 0;
+    ULONG MsgSize  = 0;
+    CHAR* MsgBuff  = nullptr;
+    
+    PACKAGE* Package = (PACKAGE*)Self->Hp->Alloc( sizeof( PACKAGE ) );
+
+    MsgSize = Self->Msvcrt.vsnprintf( nullptr, 0, Message, VaList );
+    if ( MsgSize < 0 ) {
+        KhDbg( "failed get the formated message size" ); goto _KH_END;
+    }
+
+    MsgBuff = (CHAR*)Self->Hp->Alloc( MsgSize +1 );
+
+    if ( Self->Msvcrt.vsnprintf( MsgBuff, MsgSize, Message, VaList ) < 0 ) {
+        KhDbg( "failed formating string" ); goto _KH_END;
+    }
+
+    Package->Buffer = PTR( Self->Hp->Alloc( sizeof( BYTE ) ) );
+    Package->Length = 0;
+
+    this->Pad( Package, (PUCHAR)Self->Session.AgentID, 36 );
+    this->Byte( Package, Enm::Task::QuickMsg );
+
+    if ( PROFILE_C2 == PROFILE_SMB ) {
+        // this->Pad( Package, (PUCHAR)SmbUUID, 36 );
+    }
+
+    this->Pad( Package, (UCHAR*)UUID, 36 );
+    this->Int32( Package, Type );
+    this->Str( Package, Message );
+
+    result = this->Transmit( Package, nullptr, 0 );
+
+_KH_END:
+    if ( Package ) this->Destroy( Package );
+    if ( VaList  ) va_end( VaList );
+    if ( MsgBuff ) Self->Hp->Free( MsgBuff );
+
+    return result;   
+}
+
+
 auto DECLFN Package::SendMsg(
     _In_ CHAR* UUID,
     _In_ CHAR* Message,

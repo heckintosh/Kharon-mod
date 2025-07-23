@@ -212,16 +212,18 @@ namespace Str {
 }
 
 
-#define TSK_LENGTH ( Enm::Task::TaskLast - 9 )
+#define TSK_LENGTH ( Enm::Task::TaskLast - 10 )
 
 namespace Enm {
     enum Task {
         GetTask,
         PostReq,
+        
         NoTask = 4,
         QuickMsg,
         Error,
         QuickOut,
+
         Checkin = 241,
 
         Config = 10,
@@ -236,7 +238,24 @@ namespace Enm {
         ExecBof,
         Token,
         Pivot,
+        PostEx,
+        ScInject,
         TaskLast
+    };
+
+    enum PostXpl {
+        Inline,
+        Fork
+    };
+
+    enum Fork {
+        Init_f,
+        GetResp_f
+    };
+
+    enum Inline {
+        Init_i,
+        GetResp_i
     };
 
     enum Thread {

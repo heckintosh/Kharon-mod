@@ -78,6 +78,18 @@ EXTERN_C __fastcall NTSTATUS ExecSyscall( ... );
 
 /* ======== [ Injection ] ======== */
 
+struct _INJ_OBJ {
+    HANDLE PsHandle;
+    ULONG  ProcessId;
+    HANDLE ThreadHandle;
+    ULONG  ThreadId;
+    PVOID  BaseAddress;
+    BOOL   Persist;
+
+    ULONG ObjID;
+};
+typedef _INJ_OBJ INJ_OBJ;
+
 enum eMask {
     Timer = 1,
     Apc,
@@ -100,6 +112,7 @@ enum Reg {
 #define CALLBACK_OUTPUT_OEM  0x1e
 #define CALLBACK_OUTPUT_UTF8 0x20
 #define CALLBACK_ERROR       0x0d
+#define CALLBACK_NO_PRE_MSG  0x4f
 #define CALLBACK_CUSTOM      0x1000
 #define CALLBACK_CUSTOM_LAST 0x13ff
 

