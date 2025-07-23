@@ -5,7 +5,7 @@
 
 /* ========== [ Structs ] ========== */
 
-typedef ULONG       ERROR_CODE;
+typedef LONG        ERROR_CODE;
 typedef UINT_PTR    UPTR;
 
 #define KhGetError       NtCurrentTeb()->LastErrorValue

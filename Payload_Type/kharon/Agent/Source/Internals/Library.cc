@@ -6,7 +6,7 @@ auto DECLFN Library::Load(
     if ( Self->Spf->Enabled ) {
         return (UPTR)Self->Spf->Call( (UPTR)Self->Krnl32.LoadLibraryA, 0, (UPTR)LibName );
     }
-
+    
     return (UPTR)Self->Krnl32.LoadLibraryA( LibName );
 }
 

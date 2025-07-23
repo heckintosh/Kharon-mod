@@ -37,7 +37,7 @@ BOOL DECLFN Injection::Standard(
         return FALSE;
     }
 
-    auto MemAlloc = [&](SIZE_T AllocSize) -> PVOID {
+    auto MemAlloc = [&]( SIZE_T AllocSize ) -> PVOID {
         PVOID addr = nullptr;
         if ( Self->Inj->Ctx.Alloc == 0 ) {
             addr = Self->Mm->Alloc( nullptr, AllocSize, MEM_COMMIT, PAGE_READWRITE, PsHandle );
@@ -73,13 +73,14 @@ BOOL DECLFN Injection::Standard(
             if ( BaseAddress ) {
                 Self->Mm->Free( BaseAddress, MemSizeToZero, MEM_RELEASE, PsHandle );
             }
-            if ( PsHandle && !Object->PsHandle ) {
+            if ( PsHandle && ! Object->PsHandle ) {
                 Self->Ntdll.NtClose( PsHandle );
             }
         }
         if ( TempAddress ) {
             Self->Mm->Free( TempAddress, FullSize, MEM_RELEASE );
         }
+        
         return BooleanRet;
     };
 
@@ -90,7 +91,6 @@ BOOL DECLFN Injection::Standard(
             return Cleanup();
         }
     }
-
     
     Mem::Copy( (BYTE*)TempAddress, Buffer, Size );
     if ( ArgSize > 0 ) {
