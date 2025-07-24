@@ -110,9 +110,9 @@ class PwPickCommand(CommandBase):
         task.args.remove_arg("keep")
         task.args.remove_arg("appdomain")
 
-        content: bytes = await get_content_by_name("dotnet_assembly.x64.bin", task.Task.ID)
+        content: bytes = await get_content_by_name("kh_dotnet_assembly.x64.bin", task.Task.ID)
         if not content:
-            raise Exception("File BOF 'dotnet_assembly.x64.bin' not found!")
+            raise Exception("File BOF 'kh_dotnet_assembly.x64.bin' not found!")
 
         pwpick_content: bytes = await get_content_by_name("kw_pwsh.x64.exe", task.Task.ID)
         args:str = f"{command} {script}"
@@ -493,9 +493,9 @@ class DotnetInlineCommand(CommandBase):
         task.args.remove_arg("keep")
         task.args.remove_arg("appdomain")
 
-        content: bytes = await get_content_by_name("dotnet_assembly.x64.bin", task.Task.ID)
+        content: bytes = await get_content_by_name("kh_dotnet_assembly.x64.bin", task.Task.ID)
         if not content:
-            raise Exception("File BOF 'dotnet_assembly.x64.bin' not found!")
+            raise Exception("File BOF 'kh_dotnet_assembly.x64.bin' not found!")
 
         method = 0
 
