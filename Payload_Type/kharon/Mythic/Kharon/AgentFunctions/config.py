@@ -168,16 +168,16 @@ class ConfigCommand( CommandBase ):
     cmd = "config"
     needs_admin = False
     help_cmd = \
-    """
-    Configure agent settings. Options can be combined:
-    
-    config -mask [timer|none] -bypass [all|amsi|etw] -injection-sc [classic] -sleep [seconds] -bof-hook [true|false]
-           -jitter [percentage] -killdate [YYYY-MM-DD] -ppid [pid] -exit [thread|process] -self-delete [true|false] -blockdll [true|false]
+    """ Configure agent settings. Options can be combined:
+        + -mask [timer|none] -bypass [all|amsi|etw] -injection-sc [classic] -sleep [seconds] -bof-hook [true|false] 
+          -jitter [percentage] -killdate [YYYY-MM-DD] -ppid [pid] -exit [thread|process] -self-delete [true|false] -blockdll [true|false]
     
     Examples:
         config -mask timer -bypass all
         config -sleep 5 -jitter 10
         config -killdate 2040-01-01 -ppid 1234 -injection-sc clasic
+    
+    Behavior: Client-Side | Native code\n
     """
     description = "Configure agent settings"
     version = 1

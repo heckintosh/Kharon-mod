@@ -230,7 +230,6 @@ auto DECLFN Memory::Write(
         ? (UPTR)Self->Sys->Ext[Sys::Write].ssn
         : 0;
 
-
     if ( Flags & SYSCALL_INDIRECT && ! (Flags & SYSCALL_SPOOF) ) {
         SyscallExec( Sys::Write, Status, Handle, Base, Buffer, Size, Written );
     } else {

@@ -121,7 +121,7 @@ class LdapSearchCommand(CommandBase):
     2 = OneLevel (immediate children of base object)
     3 = Subtree (base object and all descendants)
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

@@ -20,7 +20,7 @@ class LocaleCommand( CommandBase ):
     """
     List system locale language, locale ID, date, time, and country
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

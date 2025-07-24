@@ -90,7 +90,7 @@ class RegQueryCommand(CommandBase):
     reg_query -hive HKLM -path "Software\\Microsoft\\Windows\\CurrentVersion\\Run"
     reg_query -hive HKLM -path "System\\CurrentControlSet\\Services\\SomeService" -key Start -hostname dc01
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

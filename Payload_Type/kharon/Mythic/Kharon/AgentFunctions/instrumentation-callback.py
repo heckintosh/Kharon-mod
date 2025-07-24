@@ -20,7 +20,7 @@ class GetCallbackCommand( CommandBase ):
     """
     Get Instrumentation Callback setup
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -62,7 +62,7 @@ class InsCallbackRmCommand( CommandBase ):
     """
     Remote Instrumentation Callback
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

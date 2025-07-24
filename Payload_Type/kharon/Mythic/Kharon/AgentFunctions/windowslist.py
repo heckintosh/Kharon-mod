@@ -20,7 +20,7 @@ class WindowslistCommand( CommandBase ):
     """
     List Windows title 
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

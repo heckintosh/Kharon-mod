@@ -199,6 +199,20 @@ def QuickOut( Data ):
             "task_id": UUID.decode("utf-8", errors="ignore"),
             response_key: Message
         }
+    elif CommandID == Commands['post_ex']['hex_code']:
+        CallbackType = Psr.Int32()
+        CallbackOut  = Psr.Bytes().decode("utf-8", errors="ignore")  
+
+        return {
+            "action": "post_response",
+            "responses": [
+                {
+                    "task_id": UUID.decode("utf-8"),
+                    "user_output": f"[+] Received Output:\n\n{CallbackOut}",
+                    "completed": False
+                }
+            ],
+        }
     else:
         CallbackType = Psr.Int32()
         logging.info(f"type {CallbackType}")

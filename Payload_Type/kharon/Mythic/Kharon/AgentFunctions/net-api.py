@@ -77,7 +77,7 @@ class NetLocalGroupCommand(CommandBase):
     MITRE ATT&CK Technique:
     T1069.001 - Permission Groups Discovery: Local Groups
     
-    Category: Discovery
+    Behavior: Discovery
     """
     version = 1
     author = "@Oblivion"
@@ -171,7 +171,7 @@ class NetSessionCommand(CommandBase):
     
     Without arguments, enumerates sessions on localhost.
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -266,7 +266,7 @@ class NetUserCommand(CommandBase):
     Without arguments, lists all users.
     With username, shows detailed information about specific user.
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

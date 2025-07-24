@@ -57,13 +57,9 @@ class WmiQueryArguments(TaskArguments):
 class WmiQueryCommand(CommandBase):
     cmd = "wmi-query"
     needs_admin = False
-    help_cmd = "wmi-query -query <query> -system [system] -namespace [namespace:opt]"
-    description = """
-    Executes a WMI query against the specified system and namespace.
-    Defaults to local system (.) and root\\cimv2 namespace if not specified.
-    
-    Category: Beacon Object File
-    """
+    help_cmd = "wmi-query -query <query> -system [system:opt] -namespace [namespace:opt]"
+    description = \
+    "Executes a WMI query against the specified system and namespace. Defaults to local system (.) and root\\cimv2 namespace if not specified\nBehavior: Beacon Object File\n"
     version = 1
     author = "@Oblivion"
     argument_class = WmiQueryArguments
@@ -80,11 +76,11 @@ class WmiQueryCommand(CommandBase):
         namespace = task.args.get_arg("namespace") or "root\\cimv2"
         resource = f"\\\\{system}\\{namespace}"
 
-        display_params = f"'{query}'"
+        display_params = f"-query '{query}'"
         if system != ".":
-            display_params += f" on \\\\{system}"
+            display_params += f" -system \\\\{system}"
         if namespace != "root\\cimv2":
-            display_params += f" (namespace: {namespace})"
+            display_params += f" -namespace {namespace})"
 
         bof_args = [
             {"type": "wchar", "value": system},

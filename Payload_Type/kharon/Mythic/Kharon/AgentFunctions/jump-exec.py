@@ -210,7 +210,7 @@ class IpconfigCommand( CommandBase ):
     """
     Lateral Moviment via Service COntrol Manager (SCM)
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

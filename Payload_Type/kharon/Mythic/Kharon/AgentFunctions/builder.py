@@ -2,6 +2,7 @@ import logging
 import pathlib
 import asyncio
 import os
+import secrets
 import tempfile
 import traceback
 from distutils.dir_util import copy_tree
@@ -411,6 +412,13 @@ class KharonAgent(PayloadType):
         if self.get_parameter('Call Stack Spoofing'):
             syscall_flags += 0x250
 
+        random_key = secrets.token_bytes(16)
+
+        # Formatar em { 0x00, 0x00, ... }
+        formatted_key = "'" + ", ".join([f"0x{byte:02x}" for byte in random_key]) + "'"
+
+        logging.info(f"formated key:: {formatted_key}")
+
         build_config = {
             "arch": arch,
             "debug": debug,
@@ -430,6 +438,7 @@ class KharonAgent(PayloadType):
                 f"KH_INDIRECT_SYSCALL_ENABLED={1 if self.get_parameter('Indirect Syscall') else 0}",
                 f"KH_HARDWARE_BREAKPOINT_BYPASS_DOTNET={self.get_hardware_breakpoint_value()}",
                 f"KH_INJECTION_SC={self.get_injection_value()}",
+                f"KH_CRYPT_KEY={formatted_key}"
             ],
             "c2_defs": []
         }
@@ -470,7 +479,7 @@ class KharonAgent(PayloadType):
 
     def generate_compile_loader(self, build_dir: str, config: dict) -> str:
         """Generate the compilation command for the loader"""
-        build_type   = f"{config['arch']}-{'debug' if config['debug'] == 'debug' else 'release'}"
+        build_type = f"{config['arch']}-{'debug' if config['debug'] == 'on' else 'release'}"
         main_choices = {"exe": 0x100, "dll": 0x200, "svc": 0x300}
         return f"make -C {build_dir} {build_type} BUILD_PATH={build_dir} KH_MAIN={main_choices.get(self.get_parameter('Format'))}"
 

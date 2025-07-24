@@ -20,7 +20,7 @@ class IpconfigCommand( CommandBase ):
     """
     Display detailed IP configuration and network adapter information.
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

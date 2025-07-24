@@ -54,12 +54,11 @@ class DownloadCommand( CommandBase ):
     cmd         = "download";
     needs_admin = False;
     help_cmd    = "download [-path <file_path>]";
-    description = "Download a file off the target system.";
+    description = "Download a file off the target system\nBehavior: Native Code\n";
     version     = 1;
     supported_ui_features = ["file_browser:download"];
     author      = "@ Oblivion";
     argument_class = DownloadArguments;
-    attackmapping  = ["T1020", "T1030", "T1041"];
     browser_script = BrowserScript( script_name = "download", author = "@ Oblivion", for_new_ui=True );
     attributes = CommandAttributes(
         suggested_command=True,
@@ -67,7 +66,7 @@ class DownloadCommand( CommandBase ):
 
     async def create_go_tasking(self, taskData: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
         response = PTTaskCreateTaskingMessageResponse(
-            TaskID=taskData.Task.ID,
+            TaskID=taskData.task.ID,
             Success=True,
         )
         path = taskData.args.get_arg("path")

@@ -20,7 +20,7 @@ class SysmoncheckCommand( CommandBase ):
     """
     Verify if Sysmon is running by checking the registry and listing Minifilter drivers.
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

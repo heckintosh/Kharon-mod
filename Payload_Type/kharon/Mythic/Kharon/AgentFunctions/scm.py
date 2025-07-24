@@ -50,7 +50,7 @@ class ScstopCommand(CommandBase):
     """
     Stop the specified service
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -140,7 +140,7 @@ class ScStartCommand(CommandBase):
     """
     Start a existente service
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -231,7 +231,7 @@ class ScqueryCommand(CommandBase):
     Enumerates status for active services and drivers.
     Query can be performed against a specific service or all services if none specified.
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -301,7 +301,7 @@ class ScenumCommand( CommandBase ):
     """
     Enumerate services for qc, query, qfailure, and qtriggers info.
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -387,7 +387,7 @@ class ScDescCommand(CommandBase):
     Enumerates status for active services and drivers.
     Query can be performed against a specific service or all services if none specified.
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -478,7 +478,7 @@ class ScDelCommand(CommandBase):
     Enumerates status for active services and drivers.
     Query can be performed against a specific service or all services if none specified.
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -645,7 +645,7 @@ class ScStartCommand(CommandBase):
       3 = Manual
       4 = Disabled
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

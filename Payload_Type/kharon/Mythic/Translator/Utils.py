@@ -15,6 +15,62 @@ KH_CALLBACK_OUTPUT     = 0x0
 KH_CALLBACK_ERROR      = 0x0d
 KH_CALLBACK_NO_PRE_MSG = 0x4f
 
+SB_CFG_JITTER   = 14;
+SB_CFG_SLEEP    = 15;
+SB_CFG_MASK     = 16;
+SB_CFG_SC       = 17;
+SB_CFG_PE       = 18;
+SB_CFG_PPID     = 19;
+SB_CFG_BLOCK    = 20;
+SB_CFG_CURDIR   = 21;
+SB_CFG_ARG      = 22;
+SB_CFG_KILLDATE = 23;
+SB_CFG_WORKTIME = 24;
+
+mask_id = {
+    "timer": 1,
+    "none": 3
+}
+
+shellcode_id = {
+    "classic": 0,
+    "stomp": 1
+}
+
+pe_id = {
+    "reflection": 0
+}
+
+config_id = {
+    "jitter": SB_CFG_JITTER,
+    "sleep":  SB_CFG_SLEEP,
+    "mask":   SB_CFG_MASK,
+    "injection-sc": SB_CFG_SC,
+    "injection-pe":  SB_CFG_PE,
+    "ppid":   SB_CFG_PPID,
+    "block":  SB_CFG_BLOCK,
+    "curdir": SB_CFG_CURDIR,
+    "arg": SB_CFG_ARG,
+    "killdate": SB_CFG_KILLDATE,
+    "worktime": SB_CFG_WORKTIME
+}
+
+SB_FS_LS    = 30;
+SB_FS_CAT   = 31;
+SB_FS_PWD   = 32;
+SB_FS_CD    = 33;
+SB_FS_MV    = 34;
+SB_FS_CP    = 35;
+SB_FS_DEL   = 36;
+SB_FS_MKDIR = 37;
+
+SB_PS_LIST   = 20;
+SB_PS_CREATE = 21;
+SB_PS_KILL   = 22;
+
+KH_CALLBACK_OUTPUT = 0x0
+KH_CALLBACK_ERROR  = 0x0d
+
 JOB_CHECKIN   = 0xf1;
 JOB_GET_TASK  = 0;
 JOB_POST      = 1;
@@ -64,14 +120,21 @@ T_SOCKS     = 18;
 T_EXEC_BOF  = 19;
 T_TOKEN     = 20;
 T_PIVOT     = 21;
+T_POSTEX    = 22;
+T_SC_INJECT = 23;
 
-SB_TKN_UUID  = 10;
-SB_TKN_STEAL = 11;
-SB_TKN_MAKE  = 12;
-SB_TKN_PRIV  = 13;
-SB_TKN_STORE = 14;
-SB_TKN_USE   = 15;
-SB_TKN_RM    = 16;
+SB_POSTEX_INLINE = 0;
+SB_POSTEX_FORK   = 1;
+
+SB_FORK_INIT = 0;
+SB_FORK_GET  = 1;
+
+SB_INLINE_INIT = 0;
+SB_INLINE_GET  = 1;
+
+SB_PIVOT_LINK   = 10;
+SB_PIVOT_UNLINK = 11;
+SB_PIVOT_LIST   = 12;
 
 SB_DT_INLINE = 5;
 SB_DT_UNLOAD = 6;
@@ -103,6 +166,14 @@ SB_FS_MKDIR = 35;
 SB_FS_DEL   = 36;
 SB_FS_CD    = 37;
 
+Jobs = {
+    "checkin":       {"hex_code": JOB_CHECKIN },
+    "get_tasking":   {"hex_code": JOB_GET_TASK },
+    "post_response": {"hex_code": JOB_POST },
+    "error":         {"hex_code": JOB_ERROR },
+    "quick_msg":     {"hex_code": JOB_QUICK_MSG},
+    "quick_out":     {"hex_code": JOB_QUICK_OUT}
+}
 
 Jobs = {
     "checkin":       {"hex_code": JOB_CHECKIN },
@@ -120,21 +191,7 @@ Commands = {
     "self-del":  {"hex_code": T_SELFDEL},
     "upload":    {"hex_code": T_UPLOAD},
     "download":  {"hex_code": T_DOWNLOAD},
-    "info"    :  {"hex_code": T_INFO},
     "exec-bof":  {"hex_code": T_EXEC_BOF},
-
-    "token": {
-        "hex_code": T_TOKEN,
-        "subcommands": {
-            "getuuid": { "sub": SB_TKN_UUID },
-            "steal": {"sub": SB_TKN_STEAL},
-            "make": {"sub": SB_TKN_MAKE},
-            "privs": {"sub": SB_TKN_PRIV},
-            "store": {"sub": SB_TKN_STORE},
-            "use": {"sub": SB_TKN_USE},
-            "rm": {"sub": SB_TKN_RM}
-        }
-    },
 
     "bof": {
         "whoami":     {"sub": BF_WHOAMI},
@@ -202,6 +259,35 @@ Commands = {
             "cmd" : {"sub": SB_PS_CREATE},
             "pwsh": {"sub": SB_PS_CREATE},
             "kill": {"sub": SB_PS_KILL}
+        }
+    },
+
+    "pivot": {
+        "hex_code": T_PIVOT,
+        "subcommands": {
+            "link"  : {"sub" : SB_PIVOT_LINK},
+            "unlink": {"sub" : SB_PIVOT_UNLINK},
+            "list"  : {"sub" : SB_PIVOT_LIST},
+        }
+    },
+
+    "exec-sc": {
+        "hex_code": T_SC_INJECT
+    },
+
+    "post_ex": {
+        "hex_code": T_POSTEX,
+        "subcommands": {
+            "inline": {
+                    "sub": SB_POSTEX_INLINE, 
+                    "step_init": SB_INLINE_INIT, 
+                    "step_get": SB_INLINE_GET
+                },
+            "fork"  : {
+                "sub": SB_POSTEX_FORK, 
+                "step_init": SB_FORK_INIT,   
+                "step_get": SB_FORK_GET
+            },
         }
     }
 };

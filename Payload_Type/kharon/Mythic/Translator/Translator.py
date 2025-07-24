@@ -24,7 +24,7 @@ class KharonTranslator( TranslationContainer ):
         AgentUUID = InputMsg.UUID
         
         Dbg8( f"Action: {Action}" );
-        Dbg8( f"Input Json: {InputMsg.Message}" );
+        # Dbg8( f"Input Json: {InputMsg.Message}" );
 
         if "socks" in InputMsg.Message and InputMsg.Message["socks"]:
             SocksKey = InputMsg.Message["socks"]
@@ -55,11 +55,11 @@ class KharonTranslator( TranslationContainer ):
 
         Response.Message = CipherTxt
 
-        Dbg8( f"UUID     {AgentUUID}" )
-        Dbg8( f"Key      {EncryptKey}" )
-        Dbg8( f"plain    {PlainTxt}  [{len( PlainTxt )}]" );
-        Dbg8( f"cipher   {CipherTxt} [{len( CipherTxt )}]" );
-        Dbg8( f"response {Response.Message} [{len( Response.Message )}]" );
+        Dbg8( f"UUID   {AgentUUID}" )
+        Dbg8( f"Key    {EncryptKey}" )
+        Dbg8( f"plain  {len(PlainTxt)}" );
+        Dbg8( f"cipher {len( CipherTxt )}" );
+        Dbg8( f"response {len( Response.Message )}" );
         Dbg8( "-----------------------\n" );
 
         return Response
@@ -90,7 +90,7 @@ class KharonTranslator( TranslationContainer ):
         Action      = TextPlain[0];
         ActionData  = TextPlain[1:];
 
-        Dbg7( f"raw dec: {TextPlain}" )
+        # Dbg7( f"raw dec: {TextPlain}" )
         Dbg7( f"Action: {Action}" );
         Dbg7( f"Encrypt Key: {EncryptKey} [{len(EncryptKey)}]" );
 
@@ -109,7 +109,7 @@ class KharonTranslator( TranslationContainer ):
         elif Action == Jobs['post_response']['hex_code']:
             Response.Message = PostC2( ActionData );
         
-        Dbg7( f"buffer: {Response.Message} length {len(Response.Message)}" );
+        Dbg7( f"buffer length {len(Response.Message)}" );
         Dbg7( "-----------------------\n" );
 
         return Response

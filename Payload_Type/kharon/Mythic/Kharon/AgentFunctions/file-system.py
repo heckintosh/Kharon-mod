@@ -29,18 +29,17 @@ class CpArguments(TaskArguments):
             else:
                 parts = self.command_line.split()
                 if len(parts) != 2:
-                    raise ValueError("Usage: cp <source> <destination>")
+                    raise ValueError("Usage: cp <src_path> <dest_path>")
                 self.add_arg("source", parts[0])
                 self.add_arg("destination", parts[1])
 
 class CpCommand(CommandBase):
     cmd = "cp"
     needs_admin = False
-    help_cmd = "cp <source> <destination>"
-    description = "Copy files/directories"
+    help_cmd = "cp -source <src_path> -destination <dest_path>"
+    description = "Copy files/directories\nBehavior: Native Code\n"
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1564", "T1070"]
     argument_class = CpArguments
     attributes = CommandAttributes(
         supported_os=[SupportedOS.Windows],
@@ -118,11 +117,10 @@ class CdArguments(TaskArguments):
 class CdCommand(CommandBase):
     cmd = "cd"
     needs_admin = False
-    help_cmd = "cd [path]"
-    description = "Change current working directory"
+    help_cmd = "cd -path [path]"
+    description = "Change current working directory\nBehavior: Native Code\n"
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1083"]
     argument_class = CdArguments
     attributes = CommandAttributes(
         supported_os=[SupportedOS.Windows],
@@ -197,11 +195,10 @@ class CatArguments(TaskArguments):
 class CatCommand(CommandBase):
     cmd = "cat"
     needs_admin = False
-    help_cmd = "cat <file>"
-    description = "Display file contents"
+    help_cmd = "cat -file <file>"
+    description = "Display file contents\nBehavior: Native Code\n"
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1005", "T1039", "T1025"]
     argument_class = CatArguments
     attributes = CommandAttributes(
         supported_os=[SupportedOS.Windows],
@@ -274,11 +271,10 @@ class LsArguments(TaskArguments):
 class LsCommand(CommandBase):
     cmd = "ls"
     needs_admin = False
-    help_cmd = "ls [path]"
-    description = "List directory contents"
+    help_cmd = "ls -path [path]"
+    description = "List directory contents\nBehavior: Native Code\n"
     version = 1
     author = "@ Oblivion"
-    attackmapping = ["T1083"]
     browser_script = BrowserScript( script_name="ls_new", author="@ Oblivion", for_new_ui=True )
     supported_ui_features = ["file_browser:list"]
     argument_class = LsArguments
@@ -430,22 +426,17 @@ class MvArguments(TaskArguments):
             else:
                 parts = self.command_line.split()
                 if len(parts) != 2:
-                    raise ValueError("Usage: mv <source> <destination>")
+                    raise ValueError("Usage: mv <src_path> <dest_path>")
                 self.add_arg("source", parts[0])
                 self.add_arg("destination", parts[1])
 
 class MvCommand(CommandBase):
     cmd = "mv"
     needs_admin = False
-    help_cmd = "mv <source> <destination>"
-    description = \
-    """
-    Move or rename files/directories" \
-    Category: Native
-    """
+    help_cmd = "mv -source <src_path> -destination <dest_path>"
+    description = "Move or rename files/directories\nBehavior: Native Code\n"
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1564", "T1070"]
     argument_class = MvArguments
     browser_script = BrowserScript(script_name="usf_new", author="@Oblivion", for_new_ui=True)
     attributes = CommandAttributes(
@@ -513,10 +504,9 @@ class PwdCommand(CommandBase):
     cmd = "pwd"
     needs_admin = False
     help_cmd = "pwd"
-    description = "Print current working directory"
+    description = "Print current working directory\nBehavior: Native Code\n"
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1083"]
     argument_class = PwdArguments
     browser_script = BrowserScript(script_name="usf_new", author="@Oblivion", for_new_ui=True)
     attributes = CommandAttributes(
@@ -589,11 +579,10 @@ class RmArguments(TaskArguments):
 class RmCommand(CommandBase):
     cmd         = "rm"
     needs_admin = False
-    help_cmd    = "rm <path>"
-    description = "Remove files/directories"
+    help_cmd    = "rm -path <path>"
+    description = "Remove files/directories\nBehavior: Native Code\n"
     version = 1
     author  = "@ Oblivion"
-    attackmapping = ["T1070", "T1485"]
     argument_class = RmArguments
     browser_script = BrowserScript(script_name="usf_new", author="@Oblivion", for_new_ui=True)
     attributes = CommandAttributes(

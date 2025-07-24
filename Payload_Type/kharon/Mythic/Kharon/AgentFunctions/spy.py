@@ -20,7 +20,7 @@ class SpyslackkeyCommand( CommandBase ):
     """
     Collect the Slack key from Slack process
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -62,7 +62,7 @@ class ScreenshotCommand(CommandBase):
     """
     Capture the screen and upload the screenshot
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -133,7 +133,7 @@ class SpyclipdumpCommand( CommandBase ):
     """
     Dump the clipboard
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

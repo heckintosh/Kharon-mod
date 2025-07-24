@@ -469,6 +469,7 @@ namespace Root {
             DECLAPI( ResumeThread );
             DECLAPI( CreateThread );
             DECLAPI( CreateRemoteThread );
+            DECLAPI( GetThreadId );
 
             DECLAPI( BaseThreadInitThunk );
         
@@ -577,6 +578,7 @@ namespace Root {
             RSL_TYPE( ResumeThread ),
             RSL_TYPE( CreateThread ),
             RSL_TYPE( CreateRemoteThread ),
+            RSL_TYPE( GetThreadId ),
         
             RSL_TYPE( BaseThreadInitThunk ),
 
@@ -2100,6 +2102,7 @@ public:
 
     auto Create(
         _In_  PCHAR                CommandLine,
+        _In_  ULONG                InheritHandles,
         _In_  ULONG                PsFlags,
         _Out_ PPROCESS_INFORMATION PsInfo
     ) -> BOOL;

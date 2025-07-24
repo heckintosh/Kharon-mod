@@ -17,11 +17,7 @@ class WhoamiCommand( CommandBase ):
     needs_admin = False
     help_cmd    = "env"
     description = \
-    """
-    Get Environment variables from current process
-
-    Category: Beacon Object File
-    """
+    " Get Environment variables from current process\nBehavior: Beacon Object File\n"
     version = 1
     author = "@Oblivion"
     argument_class = WhoamiArguments

@@ -113,6 +113,21 @@ T_SOCKS     = 18;
 T_EXEC_BOF  = 19;
 T_TOKEN     = 20;
 T_PIVOT     = 21;
+T_POSTEX    = 22;
+T_SC_INJECT = 23;
+
+SB_POSTEX_INLINE = 0;
+SB_POSTEX_FORK   = 1;
+
+SB_FORK_INIT = 0;
+SB_FORK_GET  = 1;
+
+SB_INLINE_INIT = 0;
+SB_INLINE_GET  = 1;
+
+SB_PIVOT_LINK   = 10;
+SB_PIVOT_UNLINK = 11;
+SB_PIVOT_LIST   = 12;
 
 SB_DT_INLINE = 5;
 SB_DT_UNLOAD = 6;
@@ -160,7 +175,6 @@ Commands = {
     "self-del":  {"hex_code": T_SELFDEL},
     "upload":    {"hex_code": T_UPLOAD},
     "download":  {"hex_code": T_DOWNLOAD},
-    "info"    :  {"hex_code": T_INFO},
     "exec-bof":  {"hex_code": T_EXEC_BOF},
 
     "bof": {
@@ -229,6 +243,31 @@ Commands = {
             "cmd" : {"sub": SB_PS_CREATE},
             "pwsh": {"sub": SB_PS_CREATE},
             "kill": {"sub": SB_PS_KILL}
+        }
+    },
+
+    "pivot": {
+        "hex_code": T_PIVOT,
+        "subcommands": {
+            "link"  : {"sub" : SB_PIVOT_LINK},
+            "unlink": {"sub" : SB_PIVOT_UNLINK},
+            "list"  : {"sub" : SB_PIVOT_LIST},
+        }
+    },
+
+    "post_ex": {
+        "hex_code": T_POSTEX,
+        "subcommands": {
+            "inline": {
+                    "sub": SB_POSTEX_INLINE, 
+                    "step_init": SB_INLINE_INIT, 
+                    "step_get": SB_INLINE_GET
+                },
+            "fork"  : {
+                "sub": SB_POSTEX_FORK, 
+                "step_init": SB_FORK_INIT,   
+                "step_get": SB_FORK_GET
+            },
         }
     }
 };
@@ -590,13 +629,13 @@ async def StorageExtract( UUID ):
 async def default_completion_callback(completionMsg: PTTaskCompletionFunctionMessage) -> PTTaskCompletionFunctionMessageResponse:
     out = ""
     response = PTTaskCompletionFunctionMessageResponse(Success=True, TaskStatus="success", Completed=True)
-    responses = await SendMythicRPCResponseSearch(MythicRPCResponseSearchMessage(TaskID=completionMsg.SubtaskData.Task.ID))
+    responses = await SendMythicRPCResponseSearch(MythicRPCResponseSearchMessage(TaskID=completionMsg.SubtaskData.task.ID))
     responses
     for output in responses.Responses:
         out += str(output.Response)
             
     await SendMythicRPCResponseCreate(MythicRPCResponseCreateMessage(
-        TaskID=completionMsg.TaskData.Task.ID,
+        TaskID=completionMsg.TaskData.task.ID,
         Response=f"{out}"
     ))
     return response

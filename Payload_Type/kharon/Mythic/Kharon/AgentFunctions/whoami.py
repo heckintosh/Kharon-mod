@@ -20,7 +20,7 @@ class WhoamiCommand( CommandBase ):
     """
     Get Username, SID, Token Privileges and Groups from current User
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

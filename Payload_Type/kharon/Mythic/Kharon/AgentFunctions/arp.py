@@ -16,12 +16,7 @@ class ArpCommand( CommandBase ):
     cmd         = "arp"
     needs_admin = False
     help_cmd    = "arp"
-    description = \
-    """
-    List ARP table
-
-    Category: Beacon Object File
-    """
+    description = "List ARP table"
     version = 1
     author = "@Oblivion"
     argument_class = ArpArguments

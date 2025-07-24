@@ -20,7 +20,7 @@ class RouteprintCommand( CommandBase ):
     """
     Displays the system routing table.
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

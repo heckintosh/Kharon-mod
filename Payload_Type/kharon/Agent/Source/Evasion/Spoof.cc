@@ -33,7 +33,7 @@ auto DECLFN Spoof::Call(
     } while ( ! this->Setup.Gadget.Size );
 
     this->Setup.Ssn      = Ssn;
-    this->Setup.ArgCount = 8;
+    this->Setup.ArgCount = 12;
 
     return SpoofCall( Arg1, Arg2, Arg3, Arg4, Fnc, (UPTR)&this->Setup, Arg5, Arg6, Arg7, Arg8, Arg9, Arg10, Arg11, Arg12 );
 }

@@ -17,10 +17,10 @@ class DnscacheCommand( CommandBase ):
     needs_admin = False
     help_cmd    = "dnscache"
     description = \
-    """
+    """ 
     Get DNS registers cached
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

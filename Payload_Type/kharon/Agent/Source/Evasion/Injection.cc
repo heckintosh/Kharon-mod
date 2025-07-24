@@ -53,9 +53,9 @@ BOOL DECLFN Injection::Standard(
              if ( (BOOL)Mem::Copy( Dst, Src, CopySize ) ) result = TRUE;
              return result;
         } else if (Self->Inj->Ctx.Write == 0) {
-            result = (BOOL)Self->Mm->WriteAPC( PsHandle, Dst, (BYTE*)Src, CopySize );
-        } else {
             result = (BOOL)Self->Mm->Write( Dst, (BYTE*)Src, CopySize, 0, PsHandle );
+        } else {
+            result = (BOOL)Self->Mm->WriteAPC( PsHandle, Dst, (BYTE*)Src, CopySize );
         }
         return result;
     };

@@ -20,7 +20,7 @@ class ShutdoownCommand( CommandBase ):
     """
     Collect the Slack key from Slack process
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
@@ -67,7 +67,7 @@ class ShutdoownCommand( CommandBase ):
     """
     Shutdown or reboot a local or remote computer, with or without a warning/message
 
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"

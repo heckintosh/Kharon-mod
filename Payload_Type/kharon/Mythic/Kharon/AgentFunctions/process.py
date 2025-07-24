@@ -202,7 +202,6 @@ class ProcListCommand(CommandBase):
     """
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1057"]
     argument_class = ProcListArguments
     supported_ui_features = ["process_browser:list"]
     browser_script = BrowserScript(script_name="ps_new", author="@Oblivion", for_new_ui=True)
@@ -456,14 +455,11 @@ class ProcCmdCommand(CommandBase):
 
     Obs:
         This command behavior can be modified using:
-            - "config -arg"  : to spoof the process createtion argument
             - "config -ppid" : to change parent process to spawn
             - "config -blockdlls" : to block non-microsoft dll for load in the process
-            - "config -curdir" : to change current direct in the process information (dont change the execution path context) 
     """
     version = 1
     author = "@Oblivion"
-    attackmapping = ["T1059", "T1059.003"]
     argument_class = ProcCmdArguments
     browser_script = BrowserScript(script_name="usf_new", author="@Oblivion", for_new_ui=True)
     attributes = CommandAttributes(
@@ -540,7 +536,7 @@ class ProcHandlesCommand(CommandBase):
     """
     List handles for target process
     
-    Category: Beacon Object File
+    Behavior: Beacon Object File
     """
     version = 1
     author = "@Oblivion"
