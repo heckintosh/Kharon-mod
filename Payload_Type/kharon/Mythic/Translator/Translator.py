@@ -56,10 +56,7 @@ class KharonTranslator( TranslationContainer ):
         Response.Message = CipherTxt
 
         Dbg8( f"UUID   {AgentUUID}" )
-        Dbg8( f"Key    {EncryptKey}" )
-        Dbg8( f"plain  {len(PlainTxt)}" );
-        Dbg8( f"cipher {len( CipherTxt )}" );
-        Dbg8( f"response {len( Response.Message )}" );
+        Dbg8( f"response {( Response.Message )}" );
         Dbg8( "-----------------------\n" );
 
         return Response

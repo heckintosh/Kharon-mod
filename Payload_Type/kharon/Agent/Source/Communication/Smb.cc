@@ -36,7 +36,7 @@ auto Transport::SmbAdd(
 
             KhDbg( "%d available from named pipe", BuffLen );
 
-            Buffer = (BYTE*)Self->Hp->Alloc( BuffLen );
+            Buffer = (BYTE*)hAlloc( BuffLen );
 
             if ( Self->Krnl32.ReadFile( Handle, Buffer, BuffLen, &BuffLen, nullptr ) ) {
                 KhDbg( "read pipe buffer with success: %d", BuffLen ); break;
@@ -48,13 +48,13 @@ auto Transport::SmbAdd(
         }
     }
 
-    CHAR* TmpUUID = (CHAR*)Self->Hp->Alloc( 36+1 );
+    CHAR* TmpUUID = (CHAR*)hAlloc( 36+1 );
 
     Mem::Copy( TmpUUID, Buffer, 36 );
 
     KhDbg( "parsed uuid: %s", TmpUUID );
 
-    SmbData = (SMB_PROFILE_DATA*)Self->Hp->Alloc( sizeof( SMB_PROFILE_DATA ) );
+    SmbData = (SMB_PROFILE_DATA*)hAlloc( sizeof( SMB_PROFILE_DATA ) );
 
     SmbData->Handle      = Handle;
     SmbData->Pkg->Buffer = Buffer;
@@ -103,8 +103,8 @@ auto Transport::SmbSend(
     _Out_opt_ PVOID  *RecvData,
     _Out_opt_ UINT64 *RecvSize
 ) -> BOOL {
-    SECURITY_ATTRIBUTES* SecAttr = (SECURITY_ATTRIBUTES*)Self->Hp->Alloc( sizeof( SECURITY_ATTRIBUTES ) );
-    SECURITY_DESCRIPTOR* SecDesc = (SECURITY_DESCRIPTOR*)Self->Hp->Alloc( SECURITY_DESCRIPTOR_MIN_LENGTH );
+    SECURITY_ATTRIBUTES* SecAttr = (SECURITY_ATTRIBUTES*)hAlloc( sizeof( SECURITY_ATTRIBUTES ) );
+    SECURITY_DESCRIPTOR* SecDesc = (SECURITY_DESCRIPTOR*)hAlloc( SECURITY_DESCRIPTOR_MIN_LENGTH );
 
     SID_IDENTIFIER_AUTHORITY SidAuth  = SECURITY_WORLD_SID_AUTHORITY;
     SID_IDENTIFIER_AUTHORITY SidLabel = SECURITY_MANDATORY_LABEL_AUTHORITY;

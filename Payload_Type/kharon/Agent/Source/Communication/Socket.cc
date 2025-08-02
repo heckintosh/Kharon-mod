@@ -37,7 +37,7 @@ auto DECLFN Socket::Add(
         return ERROR_ALREADY_EXISTS; 
     }
 
-    PSOCKET_CTX newCtx = (PSOCKET_CTX)Self->Hp->Alloc( sizeof( SOCKET_CTX ) );
+    PSOCKET_CTX newCtx = (PSOCKET_CTX)hAlloc( sizeof( SOCKET_CTX ) );
     if (!newCtx) {
         return ERROR_OUTOFMEMORY;
     }
@@ -60,7 +60,7 @@ auto DECLFN Socket::RmCtx(
     while ( Current ) {
         if ( Current->ServerID == ServerID ) {
             *Prev = Current->Next;
-            Self->Hp->Free( Current ); 
+            hFree( Current ); 
             Count--;
             return ERROR_SUCCESS;
         }

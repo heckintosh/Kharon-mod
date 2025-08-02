@@ -2,6 +2,7 @@ from mythic_container.MythicCommandBase import *
 from mythic_container.MythicRPC import *
 import sys
 
+import uuid
 
 class UploadArguments(TaskArguments):
     def __init__(self, command_line, **kwargs):
@@ -40,12 +41,16 @@ class UploadArguments(TaskArguments):
             IsDownloadFromAgent=False,
             IsScreenshot=False,
             IsPayload=False,
-            Filename=""
+            Filename="",
         ))
         if file_resp.Success:
-            file_names = list({f.Filename for f in file_resp.Files})
+            file_names = []
+            for f in file_resp.Files:
+                if f.Filename not in file_names:
+                    file_names.append(f.Filename)
             response.Success = True
             response.Choices = file_names
+            return response
         else:
             await SendMythicRPCOperationEventLogCreate(MythicRPCOperationEventLogCreateMessage(
                 CallbackId=callback.Callback,
@@ -53,8 +58,7 @@ class UploadArguments(TaskArguments):
                 MessageLevel="warning"
             ))
             response.Error = f"Failed to get files: {file_resp.Error}"
-        return response
-
+            return response
 
 class UploadCommand(CommandBase):
     cmd = "upload"
@@ -68,17 +72,15 @@ class UploadCommand(CommandBase):
     supported_ui_features = ["file_browser:upload"]
     argument_class = UploadArguments
     attributes = CommandAttributes(
-        builtin=False,
         supported_os=[SupportedOS.Windows],
-        suggested_command=True
     )
 
     async def create_go_tasking(self, taskData: MythicCommandBase.PTTaskMessageAllData) -> MythicCommandBase.PTTaskCreateTaskingMessageResponse:
-        response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(TaskID=taskData.task.ID, Success=True)
+        response = MythicCommandBase.PTTaskCreateTaskingMessageResponse(TaskID=taskData.Task.ID, Success=True)
         try:
             filename = taskData.args.get_arg("file")
             file_resp = await SendMythicRPCFileSearch(MythicRPCFileSearchMessage(
-                TaskID=taskData.task.ID,
+                TaskID=taskData.Task.ID,
                 Filename=filename,
                 LimitByCallback=False,
                 MaxResults=1
@@ -92,9 +94,13 @@ class UploadCommand(CommandBase):
 
             file = file_resp.Files[0]
             taskData.args.remove_arg("file")
-            taskData.args.add_arg("file", file.AgentFileId)
-
             remote_path = taskData.args.get_arg("remote_path")
+            taskData.args.remove_arg("remote_path")
+
+            taskData.args.add_arg("state", 0, ParameterType.Number) # init
+            taskData.args.add_arg("file", file.AgentFileId)
+            taskData.args.add_arg("remote_path", remote_path)
+
             response.DisplayParams = f"-file {file.Filename} -remote_path {remote_path}"
 
         except Exception as e:

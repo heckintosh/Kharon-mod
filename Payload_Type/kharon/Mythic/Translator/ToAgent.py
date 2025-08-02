@@ -288,10 +288,16 @@ def RespPosting( Responses ):
         Pkg.Int32( 0 );
     
     for Response in Responses:
-        FileID = Response.get( "file_id" )
+        FileID:str = Response.get( "file_id" )
+        TaskID:str = Response.get( "task_id" )
+        UploadCmd  = Commands["upload"]["hex_code"]
         if FileID:
+            Pkg.Pad( TaskID.encode("utf-8") )
+            Pkg.Int16( Commands["upload"]["hex_code"] )
+            Pkg.Int32( 1 ) # send the state of upload | 1 = recv data
             Pkg.Bytes( FileID.encode( "utf-8" ) );
             Dbg2( f"file id: {FileID}" );
+            Dbg2( f"command id: {UploadCmd}" );
 
         TotalChunks = Response.get( "total_chunks" );
         if TotalChunks:
@@ -308,6 +314,8 @@ def RespPosting( Responses ):
             Pkg.Bytes( base64.b64decode( ChunkData ) );
             Dbg2( f"Chunk Data: {len( base64.b64decode( ChunkData ) )} bytes" );
             Data = Pkg.buffer;
+    
+    Dbg2(f"data {Pkg.buffer}")
 
     Dbg2( "------------------------" );
     

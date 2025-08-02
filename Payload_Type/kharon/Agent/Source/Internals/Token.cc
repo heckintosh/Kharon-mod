@@ -38,7 +38,7 @@ auto DECLFN Token::GetUser(
         goto _KH_END;
     }
 
-    TokenUserPtr = ( PTOKEN_USER )Self->Hp->Alloc( ReturnLen );
+    TokenUserPtr = ( PTOKEN_USER )hAlloc( ReturnLen );
     if ( !TokenUserPtr ) {
         goto _KH_END;
     }
@@ -54,7 +54,7 @@ auto DECLFN Token::GetUser(
     if ( !Success && KhGetError == ERROR_INSUFFICIENT_BUFFER ) {
         TotalLen = UserLen + DomainLen + 2;
 
-        UserDom = (CHAR*)Self->Hp->Alloc( TotalLen );
+        UserDom = (CHAR*)hAlloc( TotalLen );
         if ( !UserDom ) { goto _KH_END; }
 
         CHAR  Domain[DomainLen];
@@ -73,11 +73,11 @@ auto DECLFN Token::GetUser(
 
 _KH_END:
     if ( TokenUserPtr ) {
-        Self->Hp->Free( TokenUserPtr );
+        hFree( TokenUserPtr );
     }
 
     if ( ! Success ) {
-        Self->Hp->Free( UserDom );
+        hFree( UserDom );
         UserDom = nullptr;
     }
     
@@ -125,10 +125,10 @@ auto DECLFN Token::Rm(
         }
         
         if ( Current->User ) {
-            Self->Hp->Free( Current->User );
+            hFree( Current->User );
         }
         
-        Self->Hp->Free( Current );
+        hFree( Current );
         return TRUE;
     }
 
@@ -148,10 +148,10 @@ auto DECLFN Token::Rm(
     }
     
     if ( Current->User ) {
-        Self->Hp->Free( Current->User );
+        hFree( Current->User );
     }
     
-    Self->Hp->Free( Current );
+    hFree( Current );
     return TRUE;
 }
 
@@ -169,7 +169,7 @@ auto DECLFN Token::Add(
         return nullptr;
     }
 
-    TOKEN_NODE* NewNode = (TOKEN_NODE*)Self->Hp->Alloc( sizeof(TOKEN_NODE) );
+    TOKEN_NODE* NewNode = (TOKEN_NODE*)hAlloc( sizeof(TOKEN_NODE) );
     if ( ! NewNode ) {
         return nullptr;
     }
@@ -209,7 +209,7 @@ auto DECLFN Token::ListPrivs(
 
     Self->Advapi32.GetTokenInformation( TokenHandle, TokenPrivileges, nullptr, 0, &TokenInfoLen );
 
-    TokenPrivs = (TOKEN_PRIVILEGES*)Self->Hp->Alloc( TokenInfoLen );
+    TokenPrivs = (TOKEN_PRIVILEGES*)hAlloc( TokenInfoLen );
     if ( ! TokenPrivs ) return nullptr;
 
     if ( ! Self->Advapi32.GetTokenInformation( TokenHandle, TokenPrivileges, TokenPrivs, TokenInfoLen, &TokenInfoLen ) ) {
@@ -217,12 +217,12 @@ auto DECLFN Token::ListPrivs(
     }
 
     ListCount = TokenPrivs->PrivilegeCount;
-    PrivList  = (PRIV_LIST**)Self->Hp->Alloc( sizeof( PRIV_LIST ) * ListCount );
+    PrivList  = (PRIV_LIST**)hAlloc( sizeof( PRIV_LIST ) * ListCount );
 
     for ( INT i = 0; i < ListCount; i++ ) {
         LUID  luid     = TokenPrivs->Privileges[i].Luid;
         ULONG PrivLen  = MAX_PATH;
-        CHAR* PrivName = (CHAR*)Self->Hp->Alloc( PrivLen );
+        CHAR* PrivName = (CHAR*)hAlloc( PrivLen );
 
         Self->Advapi32.LookupPrivilegeNameA( nullptr, &luid, PrivName, &PrivLen );
 
@@ -230,7 +230,7 @@ auto DECLFN Token::ListPrivs(
         PrivList[i]->Attributes = TokenPrivs->Privileges[i].Attributes;
     }
 
-    Self->Hp->Free( TokenPrivs );
+    hFree( TokenPrivs );
 
     return PrivList;
 }
@@ -245,10 +245,10 @@ auto DECLFN Token::GetPrivs(
 
     for ( INT i = 0; i < PrivListLen; i++ ) {
         this->SetPriv( TokenHandle, static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
-        Self->Hp->Free( static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
+        hFree( static_cast<PRIV_LIST**>(PrivList)[i]->PrivName );
     }
 
-    Self->Hp->Free( PrivList );
+    hFree( PrivList );
 
     return TRUE;
 }
@@ -295,7 +295,7 @@ _KH_END:
     }
 
     if ( NewNode ) {
-        Self->Hp->Free( NewNode );
+        hFree( NewNode );
     }
 
     return nullptr;

@@ -70,7 +70,7 @@ auto DECLFN Process::Create(
 
     if ( UpdateCount ) {
         Self->Krnl32.InitializeProcThreadAttributeList( 0, UpdateCount, 0, &AttrSize );
-        AttrBuff = (LPPROC_THREAD_ATTRIBUTE_LIST)Self->Hp->Alloc( AttrSize );
+        AttrBuff = (LPPROC_THREAD_ATTRIBUTE_LIST)hAlloc( AttrSize );
         Success = Self->Krnl32.InitializeProcThreadAttributeList( AttrBuff, UpdateCount, 0, &AttrSize );
         if ( ! Success ) { goto _KH_END; }
     }
@@ -136,7 +136,7 @@ auto DECLFN Process::Create(
         if ( !Success ) { goto _KH_END; }
 
         if ( PipeBuffSize > 0 ) {
-            PipeBuff = (BYTE*)Self->Hp->Alloc( PipeBuffSize );
+            PipeBuff = (BYTE*)hAlloc( PipeBuffSize );
             if ( !PipeBuff ) { Success = FALSE; goto _KH_END; }
             
             Success = Self->Krnl32.ReadFile(
@@ -155,7 +155,7 @@ auto DECLFN Process::Create(
     }
 
 _KH_END:
-    if ( AttrBuff  ) Self->Hp->Free( AttrBuff );
+    if ( AttrBuff  ) hFree( AttrBuff );
     if ( PipeWrite ) Self->Ntdll.NtClose( PipeWrite );
     if ( PipeRead  ) Self->Ntdll.NtClose( PipeRead );
     if ( PsInfo->hProcess ) Self->Ntdll.NtClose( PsInfo->hProcess );

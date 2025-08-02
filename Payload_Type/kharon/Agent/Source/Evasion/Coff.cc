@@ -54,7 +54,7 @@ auto Coff::Add(
     CHAR* UUID,
     ULONG CmdID
 ) -> BOF_OBJ* {
-    BOF_OBJ* NewObj = (BOF_OBJ*)Self->Hp->Alloc( sizeof( BOF_OBJ ) );
+    BOF_OBJ* NewObj = (BOF_OBJ*)hAlloc( sizeof( BOF_OBJ ) );
 
     if (
         !MmBegin ||
@@ -93,7 +93,7 @@ auto Coff::Rm(
 
     if ( this->Node == Obj ) {
         BOF_OBJ* NextNode = this->Node->Next;
-        Self->Hp->Free( this->Node );
+        hFree( this->Node );
         this->Node = NextNode;
         return TRUE;
     }
@@ -105,7 +105,7 @@ auto Coff::Rm(
 
     if ( Previous->Next == Obj ) {
         BOF_OBJ* NextNode = Obj->Next;
-        Self->Hp->Free(Obj);      
+        hFree(Obj);      
         Previous->Next = NextNode;
         return TRUE;
     }
@@ -310,8 +310,8 @@ auto Coff::Loader(
     //
     // allocate memory to section and symbols list
     //
-    CoffData.Sec = (SECTION_DATA*)Self->Hp->Alloc( SecNbrs * sizeof(SECTION_DATA) );
-    CoffData.Sym = (SYMBOL_DATA*)Self->Hp->Alloc( SymNbrs * sizeof(SYMBOL_DATA) );
+    CoffData.Sec = (SECTION_DATA*)hAlloc( SecNbrs * sizeof(SECTION_DATA) );
+    CoffData.Sym = (SYMBOL_DATA*)hAlloc( SymNbrs * sizeof(SYMBOL_DATA) );
     
     if ( !CoffData.Sec || !CoffData.Sym ) {
         KhDbg("failed to allocate memory for sections/symbols"); return FALSE;
@@ -489,8 +489,8 @@ auto Coff::Loader(
 
 _KH_END:
     if ( MmBase       ) Self->Mm->Free( MmBase, MmSize, MEM_RELEASE );
-    if ( CoffData.Sec ) Self->Hp->Free( CoffData.Sec );
-    if ( CoffData.Sym ) Self->Hp->Free( CoffData.Sym );
+    if ( CoffData.Sec ) hFree( CoffData.Sec );
+    if ( CoffData.Sym ) hFree( CoffData.Sym );
 
     KhDbg("COFF loading completed");
     

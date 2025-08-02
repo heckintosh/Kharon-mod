@@ -395,7 +395,19 @@ def process_normal_task(TaskUUID, CommandID, TaskPsr:Parser):
     if   CommandID == T_DOWNLOAD:
         return {"task_id": TaskUUID, "download": {...}}
     elif CommandID == T_UPLOAD:
-        return {"task_id": TaskUUID, "upload": {...}}
+        print(TaskPsr.buffer)
+        current_chunk = TaskPsr.Int32()
+        file_id       = TaskPsr.Str()
+        file_path     = TaskPsr.Str()
+        chunk_size    = TaskPsr.Int32()
+        return {
+            "task_id": TaskUUID, "upload": {
+                "chunk_size": chunk_size,
+                "file_id": file_id,
+                "chunk_num": current_chunk,
+                "full_path": ""
+            }
+        }
     elif CommandID == JOB_ERROR:
         ErrorCode = TaskPsr.Int32()
         ErrorMsg  = TaskPsr.Bytes().decode("utf-8")  
@@ -415,5 +427,6 @@ def process_normal_task(TaskUUID, CommandID, TaskPsr:Parser):
         except Exception as e:
             Dbg2( f"failed get raw argument from agent: {e}" )
         return {"task_id": TaskUUID, "process_response": Output, "completed": True}
+    
     
     
