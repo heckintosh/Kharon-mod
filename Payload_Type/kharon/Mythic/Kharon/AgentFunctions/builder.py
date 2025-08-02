@@ -32,6 +32,7 @@ class KharonAgent(PayloadType):
     BrowserScriptPath = AgentPath / "BrowserScripts"
     BOFPath           = pathlib.Path(".") / ".." / "Modules" / "BOF"
     DotnetPath        = pathlib.Path(".") / ".." / "Modules" / "Dotnet"
+    ShellcodePath     = pathlib.Path(".") / ".." / "Modules" / "Shellcode"
 
     agent_code_path = AgentPath
     agent_icon_path = AgentIconPath
@@ -250,13 +251,15 @@ class KharonAgent(PayloadType):
             # Coleta arquivos BOF e Dotnet
             bof_files = [f for f in self.BOFPath.glob('*') if f.is_file()]
             dotnet_files = [f for f in self.DotnetPath.glob('*') if f.is_file()]
+            shellcode_files = [f for f in self.ShellcodePath.glob('*') if f.is_file()]
             
-            if not bof_files and not dotnet_files:
+            if not bof_files and not dotnet_files and not shellcode_files:
                 logging.info("[Modules Upload] No Modules files found in directory")
                 return
             
             logging.debug(f"[Modules Upload] Found {len(bof_files)} BOF files to process")
             logging.debug(f"[Modules Upload] Found {len(dotnet_files)} Dotnet files to process")
+            logging.debug(f"[Modules Upload] Found {len(bof_files)} shellcode files to process")
 
             logging.debug("[Modules Upload] Querying Mythic for existing files...")
             existing_files_resp = existing_files_resp = await SendMythicRPCFileSearch(
@@ -312,6 +315,9 @@ class KharonAgent(PayloadType):
 
             for dotnet_file in dotnet_files:
                 await upload_file(dotnet_file, "Dotnet")
+
+            for shellcode_file in shellcode_files:
+                await upload_file(dotnet_file, "Shellcode")
 
         except Exception as main_exception:
             logging.error(f"[Modules Upload] Critical error in upload process: {str(main_exception)}")
