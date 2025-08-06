@@ -123,7 +123,7 @@ auto DECLFN Jobs::Send(
         Current = Current->Next;
     }
     
-    Self->Pkg->Transmit( PostJobs, (PVOID*)&Data, &Lenght );
+    Self->Pkg->Transmit( PostJobs, (PVOID*)0, 0 );
 
     // if ( Lenght < 4 ) {
     //     hFree( Data );
