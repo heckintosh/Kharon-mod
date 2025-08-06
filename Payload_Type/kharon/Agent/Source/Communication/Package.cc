@@ -405,9 +405,9 @@ auto DECLFN Package::Transmit(
     Self->Crp->AddPadding( EncBuffer + EncryptOffset, PlainLen, PaddedLen );
     Self->Crp->Encrypt( EncBuffer + EncryptOffset, PaddedLen );
 
-    if (!Self->Session.Connected) {
-        if (TotalPacketLen < sizeof(Self->Crp->LokKey)) {
-            Self->Mm->Free(EncBuffer, 0, MEM_RELEASE);
+    if ( ! Self->Session.Connected ) {
+        if ( TotalPacketLen < sizeof( Self->Crp->LokKey ) ) {
+            Self->Mm->Free( EncBuffer, 0, MEM_RELEASE );
             return FALSE;
         }
 

