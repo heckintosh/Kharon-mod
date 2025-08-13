@@ -469,12 +469,12 @@ class ProcCmdCommand(CommandBase):
 
     async def create_go_tasking(self, task: PTTaskMessageAllData) -> PTTaskCreateTaskingMessageResponse:
         command = task.args.get_arg("command")
-        task.args.add_arg("command", f"cmd.exe /c {command}")
+        task.args.add_arg("command", f"cmd.exe /c \"{command}\"")
         task.args.add_arg("action", "cmd")
         return PTTaskCreateTaskingMessageResponse(
             TaskID=task.Task.ID,
             Success=True,
-            DisplayParams=f"-command \"{command}\"",
+            DisplayParams=f"-command {command}",
             CommandName="proc"
         )
 
