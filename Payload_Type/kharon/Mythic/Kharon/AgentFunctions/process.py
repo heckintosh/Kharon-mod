@@ -474,7 +474,7 @@ class ProcCmdCommand(CommandBase):
         return PTTaskCreateTaskingMessageResponse(
             TaskID=task.Task.ID,
             Success=True,
-            DisplayParams=f"-command {command}",
+            DisplayParams=f"-command \"{command}\"",
             CommandName="proc"
         )
 
